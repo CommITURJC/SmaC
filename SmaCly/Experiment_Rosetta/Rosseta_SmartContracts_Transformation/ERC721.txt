@@ -1,0 +1,278 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface IERC721ReceiverLocal {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external returns (bytes4);
+}
+
+contract ERC721SinImports {
+    string public name;
+    string public symbol;
+    address public contractOwner;
+
+    string private _baseTokenURI;
+    mapping(uint256 => address) private _owners;
+    mapping(address => uint256) private _balances;
+    mapping(uint256 => address) private _tokenApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
+    mapping(uint256 => string) private _tokenURIs;
+
+    bytes4 private constant INTERFACE_ERC165 = 0x01ffc9a7;
+    bytes4 private constant INTERFACE_ERC721 = 0x80ac58cd;
+    bytes4 private constant INTERFACE_METADATA = 0x5b5e139f;
+
+    constructor(string memory tokenName, string memory tokenSymbol, string memory initialBaseURI) {
+        name = tokenName;
+        symbol = tokenSymbol;
+        contractOwner = msg.sender;
+        _baseTokenURI = initialBaseURI;
+
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit BaseURIUpdated("", initialBaseURI);
+    }
+
+    modifier onlyContractOwner() {
+        if (msg.sender != contractOwner) revert Unauthorized();
+        _;
+    }
+
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event BaseURIUpdated(string previousBaseURI, string newBaseURI);
+    event TokenURIUpdated(uint256 indexed tokenId, string newTokenURI);
+
+    error ZeroAddress();
+    error Unauthorized();
+    error TokenDoesNotExist(uint256 tokenId);
+    error TokenAlreadyMinted(uint256 tokenId);
+    error IncorrectTokenOwner(address expectedOwner, address providedOwner);
+    error NotTokenOwnerOrApproved(address caller, uint256 tokenId);
+    error ApprovalToCurrentOwner();
+    error ApprovalToCaller();
+    error UnsafeRecipient(address recipient);
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == INTERFACE_ERC165 || interfaceId == INTERFACE_ERC721 || interfaceId == INTERFACE_METADATA;
+    }
+
+    function balanceOf(address owner) public view returns (uint256) {
+        if (owner == address(0)) revert ZeroAddress();
+        return _balances[owner];
+    }
+
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        address tokenOwner = _owners[tokenId];
+        if (tokenOwner == address(0)) revert TokenDoesNotExist(tokenId);
+        return tokenOwner;
+    }
+
+    function getApproved(uint256 tokenId) public view returns (address) {
+        _requireMinted(tokenId);
+        return _tokenApprovals[tokenId];
+    }
+
+    function isApprovedForAll(address owner, address operator) public view returns (bool) {
+        return _operatorApprovals[owner][operator];
+    }
+
+    function tokenURI(uint256 tokenId) public view returns (string memory) {
+        _requireMinted(tokenId);
+
+        string memory individualURI = _tokenURIs[tokenId];
+        if (bytes(individualURI).length > 0) return individualURI;
+        if (bytes(_baseTokenURI).length == 0) return "";
+
+        return string.concat(_baseTokenURI, _uintToString(tokenId));
+    }
+
+    function baseURI() external view returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function exists(uint256 tokenId) external view returns (bool) {
+        return _exists(tokenId);
+    }
+
+    function approve(address to, uint256 tokenId) external {
+        address tokenOwner = ownerOf(tokenId);
+
+        if (to == tokenOwner) revert ApprovalToCurrentOwner();
+
+        if (msg.sender != tokenOwner && !isApprovedForAll(tokenOwner, msg.sender)) {
+            revert NotTokenOwnerOrApproved(msg.sender, tokenId);
+        }
+
+        _approve(to, tokenId, tokenOwner);
+    }
+
+    function setApprovalForAll(address operator, bool approved) external {
+        if (operator == msg.sender) revert ApprovalToCaller();
+
+        _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId) public {
+        if (to == address(0)) revert ZeroAddress();
+
+        address tokenOwner = ownerOf(tokenId);
+
+        if (tokenOwner != from) revert IncorrectTokenOwner(tokenOwner, from);
+        if (!_isAuthorized(tokenOwner, msg.sender, tokenId)) {
+            revert NotTokenOwnerOrApproved(msg.sender, tokenId);
+        }
+
+        _transfer(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) external {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public {
+        transferFrom(from, to, tokenId);
+        _checkOnERC721Received(from, to, tokenId, data);
+    }
+
+    function mint(address to, uint256 tokenId) external onlyContractOwner {
+        _mint(to, tokenId);
+    }
+
+    function safeMint(address to, uint256 tokenId, bytes calldata data) external onlyContractOwner {
+        _mint(to, tokenId);
+        _checkOnERC721Received(address(0), to, tokenId, data);
+    }
+
+    function burn(uint256 tokenId) external {
+        address tokenOwner = ownerOf(tokenId);
+
+        if (!_isAuthorized(tokenOwner, msg.sender, tokenId)) {
+            revert NotTokenOwnerOrApproved(msg.sender, tokenId);
+        }
+
+        _burn(tokenId);
+    }
+
+    function setBaseURI(string calldata newBaseURI) external onlyContractOwner {
+        string memory previousBaseURI = _baseTokenURI;
+        _baseTokenURI = newBaseURI;
+
+        emit BaseURIUpdated(previousBaseURI, newBaseURI);
+    }
+
+    function setTokenURI(uint256 tokenId, string calldata newTokenURI) external onlyContractOwner {
+        _requireMinted(tokenId);
+        _tokenURIs[tokenId] = newTokenURI;
+
+        emit TokenURIUpdated(tokenId, newTokenURI);
+    }
+
+    function clearTokenURI(uint256 tokenId) external onlyContractOwner {
+        _requireMinted(tokenId);
+        delete _tokenURIs[tokenId];
+
+        emit TokenURIUpdated(tokenId, "");
+    }
+
+    function transferContractOwnership(address newOwner) external onlyContractOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+
+        address previousOwner = contractOwner;
+        contractOwner = newOwner;
+
+        emit OwnershipTransferred(previousOwner, newOwner);
+    }
+
+    function _transfer(address from, address to, uint256 tokenId) internal {
+        _approve(address(0), tokenId, from);
+
+        unchecked {
+            _balances[from]--;
+        }
+
+        _balances[to]++;
+        _owners[tokenId] = to;
+
+        emit Transfer(from, to, tokenId);
+    }
+
+    function _mint(address to, uint256 tokenId) internal {
+        if (to == address(0)) revert ZeroAddress();
+        if (_exists(tokenId)) revert TokenAlreadyMinted(tokenId);
+
+        _balances[to]++;
+        _owners[tokenId] = to;
+
+        emit Transfer(address(0), to, tokenId);
+    }
+
+    function _burn(uint256 tokenId) internal {
+        address tokenOwner = ownerOf(tokenId);
+
+        _approve(address(0), tokenId, tokenOwner);
+
+        unchecked {
+            _balances[tokenOwner]--;
+        }
+
+        delete _owners[tokenId];
+        delete _tokenURIs[tokenId];
+
+        emit Transfer(tokenOwner, address(0), tokenId);
+    }
+
+    function _approve(address to, uint256 tokenId, address tokenOwner) internal {
+        _tokenApprovals[tokenId] = to;
+        emit Approval(tokenOwner, to, tokenId);
+    }
+
+    function _isAuthorized(address tokenOwner, address spender, uint256 tokenId) internal view returns (bool) {
+        return spender == tokenOwner || _tokenApprovals[tokenId] == spender || _operatorApprovals[tokenOwner][spender];
+    }
+
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return _owners[tokenId] != address(0);
+    }
+
+    function _requireMinted(uint256 tokenId) internal view {
+        if (!_exists(tokenId)) revert TokenDoesNotExist(tokenId);
+    }
+
+    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory data) internal {
+        if (to.code.length == 0) return;
+
+        try IERC721ReceiverLocal(to).onERC721Received(msg.sender, from, tokenId, data) returns (bytes4 response) {
+            if (response != IERC721ReceiverLocal.onERC721Received.selector) revert UnsafeRecipient(to);
+        } catch (bytes memory reason) {
+            if (reason.length == 0) revert UnsafeRecipient(to);
+
+            assembly {
+                revert(add(reason, 32), mload(reason))
+            }
+        }
+    }
+
+    function _uintToString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) return "0";
+
+        uint256 temporary = value;
+        uint256 digits;
+
+        while (temporary != 0) {
+            digits++;
+            temporary /= 10;
+        }
+
+        bytes memory buffer = new bytes(digits);
+
+        while (value != 0) {
+            digits--;
+            buffer[digits] = bytes1(uint8(48 + value % 10));
+            value /= 10;
+        }
+
+        return string(buffer);
+    }
+}

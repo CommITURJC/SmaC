@@ -1,0 +1,346 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface IERC1155ReceiverLocal {
+    function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data) external returns (bytes4);
+
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external returns (bytes4);
+}
+
+contract ERC1155SinImports {
+    address public contractOwner;
+
+    string private _baseMetadataURI;
+    mapping(uint256 => mapping(address => uint256)) private _balances;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
+    mapping(uint256 => string) private _individualURIs;
+
+    bytes4 private constant INTERFACE_ERC165 = 0x01ffc9a7;
+    bytes4 private constant INTERFACE_ERC1155 = 0xd9b67a26;
+    bytes4 private constant INTERFACE_METADATA = 0x0e89341c;
+
+    constructor(string memory initialURI) {
+        contractOwner = msg.sender;
+        _baseMetadataURI = initialURI;
+
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit URI(initialURI, 0);
+    }
+
+    modifier onlyContractOwner() {
+        if (msg.sender != contractOwner) revert Unauthorized();
+        _;
+    }
+
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
+    event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values);
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+    event URI(string value, uint256 indexed id);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    error ZeroAddress();
+    error Unauthorized();
+    error InvalidArrayLength();
+    error ApprovalToCaller();
+    error NotOwnerOrApproved(address caller, address tokenOwner);
+    error InsufficientBalance(address account, uint256 id, uint256 available, uint256 required);
+    error UnsafeRecipient(address recipient);
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == INTERFACE_ERC165 || interfaceId == INTERFACE_ERC1155 || interfaceId == INTERFACE_METADATA;
+    }
+
+    function balanceOf(address account, uint256 id) public view returns (uint256) {
+        if (account == address(0)) revert ZeroAddress();
+        return _balances[id][account];
+    }
+
+    function balanceOfBatch(address[] calldata accounts, uint256[] calldata ids) external view returns (uint256[] memory) {
+        uint256 length = accounts.length;
+        if (length != ids.length) revert InvalidArrayLength();
+
+        uint256[] memory batchBalances = new uint256[](length);
+
+        for (uint256 i; i < length; ) {
+            if (accounts[i] == address(0)) revert ZeroAddress();
+
+            batchBalances[i] = _balances[ids[i]][accounts[i]];
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return batchBalances;
+    }
+
+    function isApprovedForAll(address account, address operator) public view returns (bool) {
+        return _operatorApprovals[account][operator];
+    }
+
+    function setApprovalForAll(address operator, bool approved) external {
+        if (operator == msg.sender) revert ApprovalToCaller();
+
+        _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function uri(uint256 id) public view returns (string memory) {
+        string memory individualURI = _individualURIs[id];
+
+        if (bytes(individualURI).length > 0) return individualURI;
+        return _baseMetadataURI;
+    }
+
+    function baseURI() external view returns (string memory) {
+        return _baseMetadataURI;
+    }
+
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data) external {
+        if (from == address(0) || to == address(0)) revert ZeroAddress();
+
+        if (msg.sender != from && !isApprovedForAll(from, msg.sender)) {
+            revert NotOwnerOrApproved(msg.sender, from);
+        }
+
+        _safeTransferFrom(from, to, id, amount, data);
+    }
+
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) external {
+        if (from == address(0) || to == address(0)) revert ZeroAddress();
+
+        if (msg.sender != from && !isApprovedForAll(from, msg.sender)) {
+            revert NotOwnerOrApproved(msg.sender, from);
+        }
+
+        _safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
+
+    function mint(address to, uint256 id, uint256 amount, bytes calldata data) external onlyContractOwner {
+        _mint(to, id, amount, data);
+    }
+
+    function mintBatch(
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) external onlyContractOwner {
+        _mintBatch(to, ids, amounts, data);
+    }
+
+    function burn(address account, uint256 id, uint256 amount) external {
+        if (msg.sender != account && !isApprovedForAll(account, msg.sender)) {
+            revert NotOwnerOrApproved(msg.sender, account);
+        }
+
+        _burn(account, id, amount);
+    }
+
+    function burnBatch(address account, uint256[] calldata ids, uint256[] calldata amounts) external {
+        if (msg.sender != account && !isApprovedForAll(account, msg.sender)) {
+            revert NotOwnerOrApproved(msg.sender, account);
+        }
+
+        _burnBatch(account, ids, amounts);
+    }
+
+    function setURI(string calldata newURI) external onlyContractOwner {
+        _baseMetadataURI = newURI;
+        emit URI(newURI, 0);
+    }
+
+    function setTokenURI(uint256 id, string calldata newURI) external onlyContractOwner {
+        _individualURIs[id] = newURI;
+        emit URI(newURI, id);
+    }
+
+    function clearTokenURI(uint256 id) external onlyContractOwner {
+        delete _individualURIs[id];
+        emit URI(_baseMetadataURI, id);
+    }
+
+    function transferContractOwnership(address newOwner) external onlyContractOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+
+        address previousOwner = contractOwner;
+        contractOwner = newOwner;
+
+        emit OwnershipTransferred(previousOwner, newOwner);
+    }
+
+    function _safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data) internal {
+        uint256 fromBalance = _balances[id][from];
+
+        if (fromBalance < amount) {
+            revert InsufficientBalance(from, id, fromBalance, amount);
+        }
+
+        unchecked {
+            _balances[id][from] = fromBalance - amount;
+        }
+
+        _balances[id][to] += amount;
+
+        emit TransferSingle(msg.sender, from, to, id, amount);
+        _checkOnERC1155Received(from, to, id, amount, data);
+    }
+
+    function _safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) internal {
+        uint256 length = ids.length;
+        if (length != amounts.length) revert InvalidArrayLength();
+
+        for (uint256 i; i < length; ) {
+            uint256 id = ids[i];
+            uint256 amount = amounts[i];
+            uint256 fromBalance = _balances[id][from];
+
+            if (fromBalance < amount) {
+                revert InsufficientBalance(from, id, fromBalance, amount);
+            }
+
+            unchecked {
+                _balances[id][from] = fromBalance - amount;
+            }
+
+            _balances[id][to] += amount;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        emit TransferBatch(msg.sender, from, to, ids, amounts);
+        _checkOnERC1155BatchReceived(from, to, ids, amounts, data);
+    }
+
+    function _mint(address to, uint256 id, uint256 amount, bytes calldata data) internal {
+        if (to == address(0)) revert ZeroAddress();
+
+        _balances[id][to] += amount;
+
+        emit TransferSingle(msg.sender, address(0), to, id, amount);
+        _checkOnERC1155Received(address(0), to, id, amount, data);
+    }
+
+    function _mintBatch(
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) internal {
+        if (to == address(0)) revert ZeroAddress();
+
+        uint256 length = ids.length;
+        if (length != amounts.length) revert InvalidArrayLength();
+
+        for (uint256 i; i < length; ) {
+            _balances[ids[i]][to] += amounts[i];
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        emit TransferBatch(msg.sender, address(0), to, ids, amounts);
+        _checkOnERC1155BatchReceived(address(0), to, ids, amounts, data);
+    }
+
+    function _burn(address account, uint256 id, uint256 amount) internal {
+        if (account == address(0)) revert ZeroAddress();
+
+        uint256 accountBalance = _balances[id][account];
+
+        if (accountBalance < amount) {
+            revert InsufficientBalance(account, id, accountBalance, amount);
+        }
+
+        unchecked {
+            _balances[id][account] = accountBalance - amount;
+        }
+
+        emit TransferSingle(msg.sender, account, address(0), id, amount);
+    }
+
+    function _burnBatch(address account, uint256[] calldata ids, uint256[] calldata amounts) internal {
+        if (account == address(0)) revert ZeroAddress();
+
+        uint256 length = ids.length;
+        if (length != amounts.length) revert InvalidArrayLength();
+
+        for (uint256 i; i < length; ) {
+            uint256 id = ids[i];
+            uint256 amount = amounts[i];
+            uint256 accountBalance = _balances[id][account];
+
+            if (accountBalance < amount) {
+                revert InsufficientBalance(account, id, accountBalance, amount);
+            }
+
+            unchecked {
+                _balances[id][account] = accountBalance - amount;
+                ++i;
+            }
+        }
+
+        emit TransferBatch(msg.sender, account, address(0), ids, amounts);
+    }
+
+    function _checkOnERC1155Received(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes calldata data
+    ) internal {
+        if (to.code.length == 0) return;
+
+        try IERC1155ReceiverLocal(to).onERC1155Received(msg.sender, from, id, amount, data) returns (bytes4 response) {
+            if (response != IERC1155ReceiverLocal.onERC1155Received.selector) revert UnsafeRecipient(to);
+        } catch (bytes memory reason) {
+            if (reason.length == 0) revert UnsafeRecipient(to);
+
+            assembly {
+                revert(add(reason, 32), mload(reason))
+            }
+        }
+    }
+
+    function _checkOnERC1155BatchReceived(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) internal {
+        if (to.code.length == 0) return;
+
+        try IERC1155ReceiverLocal(to).onERC1155BatchReceived(msg.sender, from, ids, amounts, data) returns (bytes4 response) {
+            if (response != IERC1155ReceiverLocal.onERC1155BatchReceived.selector) revert UnsafeRecipient(to);
+        } catch (bytes memory reason) {
+            if (reason.length == 0) revert UnsafeRecipient(to);
+
+            assembly {
+                revert(add(reason, 32), mload(reason))
+            }
+        }
+    }
+}
