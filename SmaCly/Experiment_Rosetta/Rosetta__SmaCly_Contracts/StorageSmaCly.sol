@@ -1,0 +1,12 @@
+ // SPDX-License-Identifier: MIT
+  pragma solidity >=0.8.0;
+  contract Storage {
+    bytes public byteSequence ;
+    string public textString ;
+    function storeBytes(bytes memory _byteSequence) public  {
+      byteSequence = _byteSequence;
+    }
+    function storeString(string memory _textString) public  {
+      textString = _textString;
+    }
+  }

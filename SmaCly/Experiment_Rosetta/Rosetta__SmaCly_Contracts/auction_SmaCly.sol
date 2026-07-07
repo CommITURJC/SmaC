@@ -1,0 +1,56 @@
+ // SPDX-License-Identifier: MIT
+  pragma solidity >=0.8.17;
+  contract auction {
+    enum States {
+    WAIT_START,
+      WAIT_CLOSING,
+      CLOSED
+    }
+    States internal state ;
+    string public object ;
+    address public seller ;
+    uint public endTime ;
+    address public highestBidder ;
+    uint public highestBid ;
+    mapping(address => uint) public bids ;
+    constructor(string memory _object, uint _startingBid) {
+      state = States.WAIT_START;
+      object = _object;
+      seller = payable(msg.sender);
+      highestBid = _startingBid;
+    }
+    function start(uint _duration) public  {
+      require(state ==   States.WAIT_START, "Auction already started");
+      require(msg.sender ==   seller, "Only the seller");
+      state = States.WAIT_CLOSING;
+      endTime = block.timestamp + (_duration * 1 seconds);
+    }
+    function bid() public payable {
+      require(state ==   States.WAIT_CLOSING, "Auction not started or already closed");
+      require(block.timestamp < endTime, "Bidding time expired");
+      require(msg.value > highestBid, "value must be greater than highest");
+      if(highestBidder !=   address(0)){
+        bids[highestBidder] = highestBid;
+      }
+      if(bids[msg.sender] !=   0){
+        withdraw();
+      }
+      highestBidder = msg.sender;
+      highestBid = msg.value;
+    }
+    function withdraw() public  {
+      require(state !=   States.WAIT_START, "Auction not started");
+      uint bal =   bids[msg.sender];
+      bids[msg.sender] = 0;
+      (bool success, ) = payable(msg.sender).call{value: bal}("");
+      require(success, "Transfer failed.");
+    }
+    function end() public  {
+      require(msg.sender ==   seller, "Only the seller");
+      require(state ==   States.WAIT_CLOSING, "Auction not started");
+      require(block.timestamp >= endTime, "Auction not ended");
+      state = States.CLOSED;
+      (bool success, ) = seller.call{value: highestBid}("");
+      require(success, "Transfer failed.");
+    }
+  }
