@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Language" content="es">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaCly - Gestión de usuarios</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="modalCuadroDialogo.css">
+  <link rel="shortcut icon" href="iconoNavegador.ico" />
+  <script src="js/modalCuadroDialogo.js"></script>
+  <script src="js/cerrarSesion.js"></script>
+  <style>
+    body.pantalla-gestion {
+      overflow: auto;
+      background: #f6f8fc;
+      min-height: 100vh;
+    }
+
+    .gestion-layout {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 420px 1.15fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel-gestion {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      padding: 22px;
+    }
+
+    .panel-gestion h2,
+    .panel-gestion h3 {
+      margin-top: 0;
+      font-family: 'Saira', sans-serif;
+    }
+
+    .tabs-gestion {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .tab-gestion {
+      border: 1px solid #bcc6ee;
+      background: #eef2ff;
+      color: #243388;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tab-gestion.activa {
+      background: rgb(75, 86, 185);
+      color: white;
+      border-color: rgb(75, 86, 185);
+    }
+
+    .seccion-gestion {
+      display: none;
+    }
+
+    .seccion-gestion.activa {
+      display: block;
+    }
+
+    .campo {
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .campo label {
+      font-weight: 600;
+      font-family: 'Saira', sans-serif;
+    }
+
+    .campo input,
+    .campo select,
+    .campo textarea {
+      border: 1px solid #cfd7f5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+      color: #222;
+    }
+
+    .campo textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: monospace;
+    }
+
+    .nota-carga {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+
+    .acciones-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .mensaje-panel {
+      margin-top: 14px;
+      min-height: 22px;
+      font-weight: 600;
+    }
+
+    .mensaje-ok {
+      color: #188038;
+    }
+
+    .mensaje-error {
+      color: #c5221f;
+    }
+
+    .cabecera-tabla {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .filtros-tabla {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.5fr) minmax(110px, .8fr) minmax(120px, .9fr) minmax(160px, 1fr) minmax(135px, .9fr);
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: end;
+    }
+
+    .tabla-scroll {
+      overflow-x: auto;
+      border: 1px solid #e4e8f7;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    table.tabla-usuarios {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    .tabla-usuarios thead {
+      background: #eef2ff;
+    }
+
+    .tabla-usuarios th,
+    .tabla-usuarios td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #edf1fb;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    .tabla-usuarios th {
+      color: #22317f;
+      font-family: 'Saira', sans-serif;
+    }
+
+    .badge-rol {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #243388;
+    }
+
+    .estado-bloqueado {
+      color: #c5221f;
+      font-weight: 700;
+    }
+
+    .estado-activo {
+      color: #188038;
+      font-weight: 700;
+    }
+
+    .acciones-tabla {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .acciones-cabecera {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .button {
+      border-radius: 12px;
+    }
+
+    .boton-secundario {
+      box-shadow: none;
+      background: #eef2ff;
+      color: #243388;
+      border: 1px solid #bcc6ee;
+      text-shadow: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+
+    .paginacion {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .paginacion-acciones {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .subtitulo-panel {
+      margin-top: -6px;
+      color: #58617f;
+      font-size: 14px;
+    }
+
+    .switch_password {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .switch_password input {
+      display: none;
+    }
+
+    .slider_password {
+      position: relative;
+      width: 54px;
+      height: 28px;
+      background: #cfd7f5;
+      border-radius: 999px;
+      transition: 0.2s;
+      display: inline-block;
+    }
+
+    .slider_password::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
+    .switch_password input:checked + .slider_password {
+      background: rgb(75, 86, 185);
+    }
+
+    .switch_password input:checked + .slider_password::before {
+      transform: translateX(26px);
+    }
+
+    .texto_switch_password {
+      font-size: 14px;
+      font-weight: 600;
+      color: #243388;
+    }
+
+    .fila_switch_password {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+
+    .texto-ayuda-switch {
+      font-size: 13px;
+      color: #5c6788;
+      line-height: 1.3;
+    }
+
+    #salirSesion {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      user-select: none;
+      margin-left: 10px;
+    }
+
+    #salirSesion:hover {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+
+    @media (max-width: 1100px) {
+      .gestion-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .filtros-tabla {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .filtros-tabla {
+        grid-template-columns: 1fr;
+      }
+
+      .fila_switch_password {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body class="pantalla-gestion">
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>
+      </div>
+     <div class="app-header__actions">
+        <img id="salirSesion"src="iconoApagado.svg" alt="Close user session"title="Close user session" />
+        <form id="formLogout" action="/logout"method="post"style="display:none;">
+          <button type="submit">  Close session</button>
+        </form>
+      </div>
+       
+    </div>
+  </header>
+
+  <div id="botoneraNavegacion" class="botonera_navegacion"></div>
+
+  <main class="gestion-layout">
+    <section class="panel-gestion">
+      <h2>User Management</h2>
+      <p class="subtitulo-panel">Create users individually or import them from a template</p>
+
+      <div class="tabs-gestion">
+        <button type="button" class="tab-gestion activa" data-tab="altaManual">Manual Registration (FORM)</button>
+        <button type="button" class="tab-gestion" data-tab="cargaMasiva">Upload users by Excel</button>
+      </div>
+
+      <div id="altaManual" class="seccion-gestion activa">
+        <form id="userAdminForm" autocomplete="off">
+          <div class="campo">
+            <label for="user">User account name</label>
+            <input type="text" id="user" name="userAltaAdmin" placeholder="User account name" required autocomplete="off">
+          </div>
+
+          <div class="campo">
+            <label for="nombre">User personal name</label>
+            <input type="text" id="nombre" name="nombreAltaAdmin" placeholder="Insert here your user name" autocomplete="off">
+          </div>
+
+          <div class="campo">
+            <label for="apellido">Surname</label>
+            <input type="text" id="apellido" name="apellidoAltaAdmin" placeholder="Insert here your surname" autocomplete="off">
+          </div>
+
+          <div class="campo">
+            <label for="institucion">Institution</label>
+            <input type="text" id="institucion" name="institucionAltaAdmin" placeholder="University, enterprise..." autocomplete="off">
+          </div>
+
+          <div class="campo">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="emailAltaAdmin" placeholder="user@email.com" required autocomplete="off">
+          </div>
+
+          <div id="bloquePasswordCrear">
+            <div class="campo">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="passwordAltaAdmin" placeholder="Insert here the password" required autocomplete="new-password">
+            </div>
+
+            <div class="campo" id="campoPassword2Crear">
+              <label for="password2">Re-enter password</label>
+              <input type="password" id="password2" name="password2AltaAdmin" placeholder="Enter your password again" required autocomplete="new-password">
+            </div>
+          </div>
+
+          <div id="bloquePasswordEditar" style="display:none;">
+            <div class="campo">
+              <label for="cambiarPasswordSwitch">Would you like to change your password?</label>
+
+              <div class="fila_switch_password">
+                <label class="switch_password">
+                  <input type="checkbox" id="cambiarPasswordSwitch">
+                  <span class="slider_password"></span>
+                  <span id="textoSwitchPassword" class="texto_switch_password">No</span>
+                </label>
+
+                <span id="ayudaCambioPassword" class="texto-ayuda-switch" style="display:none;">
+                  If you enable this option, you must fill in all three password fields
+                </span>
+              </div>
+            </div>
+
+            <div id="bloqueCambioPassword" style="display:none;">
+              <div class="campo">
+                <label for="passwordNueva">New password</label>
+                <input type="password" id="passwordNueva" name="passwordNuevaAdmin" placeholder="Insert here the new password" autocomplete="new-password">
+              </div>
+
+              <div class="campo" id="campoPassword2Editar">
+                <label for="password2Editar">Re-enter new password</label>
+                <input type="password" id="password2Editar" name="password2EditarAdmin" placeholder="Enter the new password again" autocomplete="new-password">
+              </div>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="rolObjetivo">Role</label>
+            <select id="rolObjetivo" name="rolObjetivo">
+              <option value="USER">USER</option>
+              <option value="PROFESSOR">PROFESSOR</option>
+            </select>
+          </div>
+
+          <div class="acciones-form">
+            <button type="submit" id="guardarUsuarioBtn" class="button">Create user</button>
+            <button type="button" id="cancelarEdicionBtn" class="button boton-secundario" style="display:none;">Cancel user edition</button>
+            <button type="reset" id="limpiarFormularioBtn" class="button boton-secundario">Clean fields</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="cargaMasiva" class="seccion-gestion">
+        <p class="nota-carga">Upload an Excel file with the columns <strong>name</strong>,<strong>surname</strong>,<strong>email</strong>,<strong>password</strong> and<strong> user</strong>.</p>
+        <p class="nota-carga">The fields <strong>name</strong>,<strong>surname</strong>,<strong>email</strong> and<strong> password </strong>are required.</p>
+        <p class="nota-carga">The <strong>user</strong> column is optional.If the column is missing or its cell is empty,the system creates the username automatically.All imported accounts are created with the <strong>USER</strong> role. </p>
+        <div class="campo">
+          <label for="archivoExcel">Choose Excel file</label>
+          <input type="file" id="archivoExcel"accept=".xlsx,.xls">
+        </div>
+        <div class="acciones-form">
+          <button type="button"id="descargarPlantillaBtn"class="button boton-secundario">Download template</button>
+          <button type="button" id="subirExcelBtn" class="button">Upload users file</button>
+        </div>
+      </div>
+
+      <p id="mensajeGestion" class="mensaje-panel"></p>
+    </section>
+
+    <section class="panel-gestion">
+      <p id="mensajeTablaUsuarios" class="mensaje-panel"></p>
+
+      <div class="cabecera-tabla">
+        <div>
+          <h2>Users Management</h2>
+          <p class="subtitulo-panel">List of users you can manage</p>
+        </div>
+        <div class="acciones-cabecera">
+          <button type="button" id="refrescarUsuariosBtn" class="button boton-secundario">Refresh</button>
+          <button type="button" id="borrarTodosUsuariosBtn" class="button boton-secundario">Delete all records</button>
+        </div>
+      </div>
+
+      <div class="filtros-tabla">
+        <div class="campo">
+          <label for="filtroTexto">Search</label>
+          <input type="text" id="filtroTexto" placeholder="Name, email, user, institution...">
+        </div>
+
+        <div class="campo">
+          <label for="filtroRol">Role</label>
+          <select id="filtroRol">
+            <option value="">All</option>
+            <option value="USER">USER</option>
+            <option value="PROFESSOR">PROFESSOR</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="filtroEstado">State</label>
+          <select id="filtroEstado">
+            <option value="">All</option>
+            <option value="activo">Enable</option>
+            <option value="bloqueado">Disable</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="filtroFecha">Date</label>
+          <input type="date" id="filtroFecha">
+        </div>
+
+        <div class="campo">
+          <label for="tamPagina">Users per page</label>
+          <select id="tamPagina">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tabla-scroll">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Institution</th>
+              <th>State</th>
+              <th>Last updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tablaUsuariosBody"></tbody>
+        </table>
+      </div>
+
+      <div class="paginacion">
+        <div id="resumenPaginacion">Showing 0 users</div>
+        <div class="paginacion-acciones">
+          <button type="button" id="paginaAnteriorBtn" class="button boton-secundario">Back</button>
+          <span id="paginaActualTexto">Page 1</span>
+          <button type="button" id="paginaSiguienteBtn" class="button boton-secundario">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    var paginaActual = 1;
+    var tamanioPagina = 10;
+    var usuarios = [];
+    var usuariosFiltrados = [];
+    var idUsuarioEditando = null;
+
+    var tablaUsuariosBody = document.getElementById('tablaUsuariosBody');
+    var resumenPaginacion = document.getElementById('resumenPaginacion');
+    var paginaActualTexto = document.getElementById('paginaActualTexto');
+    var mensajeGestion = document.getElementById('mensajeGestion');
+    var mensajeTablaUsuarios = document.getElementById('mensajeTablaUsuarios');
+    var guardarUsuarioBtn = document.getElementById('guardarUsuarioBtn');
+    var cancelarEdicionBtn = document.getElementById('cancelarEdicionBtn');
+    var userAdminForm = document.getElementById('userAdminForm');
+
+    function mostrarMensaje(texto, ok) {
+      if (texto == null) {
+        texto = '';
+      }
+
+      mensajeGestion.textContent = texto;
+
+      if (ok) {
+        mensajeGestion.className = 'mensaje-panel mensaje-ok';
+      } else {
+        mensajeGestion.className = 'mensaje-panel mensaje-error';
+      }
+    }
+
+    function mostrarMensajeTabla(texto, ok) {
+      if (texto == null) {
+        texto = '';
+      }
+
+      mensajeTablaUsuarios.textContent = texto;
+
+      if (ok) {
+        mensajeTablaUsuarios.className = 'mensaje-panel mensaje-ok';
+      } else {
+        mensajeTablaUsuarios.className = 'mensaje-panel mensaje-error';
+      }
+    }
+
+    function activarTabs() {
+      var tabs = document.querySelectorAll('.tab-gestion');
+      var secciones = document.querySelectorAll('.seccion-gestion');
+      var i = 0;
+
+      for (i = 0; i < tabs.length; i++) {
+        tabs[i].addEventListener('click', function () {
+          var j = 0;
+          var idTab = this.getAttribute('data-tab');
+          var seccion = document.getElementById(idTab);
+
+          for (j = 0; j < tabs.length; j++) {
+            tabs[j].classList.remove('activa');
+          }
+
+          for (j = 0; j < secciones.length; j++) {
+            secciones[j].classList.remove('activa');
+          }
+
+          this.classList.add('activa');
+
+          if (seccion) {
+            seccion.classList.add('activa');
+          }
+
+          mostrarMensaje('', true);
+        });
+      }
+    }
+
+    function normalizarTexto(valor) {
+      if (valor == null) {
+        return '';
+      }
+
+      return String(valor).toLowerCase().trim();
+    }
+
+    function formatearFecha(valor) {
+      if (!valor) {
+        return '-';
+      }
+
+      try {
+        var fecha = new Date(valor);
+
+        if (Number.isNaN(fecha.getTime())) {
+          return valor;
+        }
+
+        return fecha.toLocaleString('es-ES');
+      } 
+      catch (error) {
+        return valor;
+      }
+    }
+
+    function obtenerRolHtml(rol) {
+      var texto = '-';
+
+      if (rol) {
+        texto = rol;
+      }
+
+      return '<span class="badge-rol">' + texto + '</span>';
+    }
+
+    function obtenerEstadoHtml(usuario) {
+      if (usuario.cuentaBloqueada) {
+        return '<span class="estado-bloqueado">Disabled</span>';
+      }
+
+      return '<span class="estado-activo">Enabled</span>';
+    }
+
+    function actualizarCambioPassword() {
+      var switchPassword = document.getElementById('cambiarPasswordSwitch');
+      var textoSwitch = document.getElementById('textoSwitchPassword');
+      var bloquePassword = document.getElementById('bloqueCambioPassword');
+      var ayudaPassword = document.getElementById('ayudaCambioPassword');
+
+      if(!switchPassword || !textoSwitch || !bloquePassword || !ayudaPassword) {
+        return;
+      }
+      if(switchPassword.checked){
+        bloquePassword.style.display = 'block';
+        ayudaPassword.style.display = 'inline';
+        textoSwitch.textContent = 'Yes';
+      } 
+      else{
+        bloquePassword.style.display = 'none';
+        ayudaPassword.style.display = 'none';
+        textoSwitch.textContent = 'No';
+        document.getElementById('passwordNueva').value = '';
+        document.getElementById('password2Editar').value = '';
+      }
+    }
+
+    function aplicarFiltros() {
+      var texto = normalizarTexto(document.getElementById('filtroTexto').value);
+      var rol = document.getElementById('filtroRol').value;
+      var estado = document.getElementById('filtroEstado').value;
+      var fecha = document.getElementById('filtroFecha').value;
+      var listaNueva = [];
+      var i = 0;
+
+      for (i = 0; i < usuarios.length; i++) {
+        var usuario = usuarios[i];
+        var meter = true;
+
+        if(texto !== ''){
+          var nombre = normalizarTexto(usuario.nombre);
+          var apellido = normalizarTexto(usuario.apellidos || usuario.apellido);
+          var email = normalizarTexto(usuario.email);
+          var user = normalizarTexto(usuario.user);
+          var institucion = normalizarTexto(usuario.institucion);
+
+          if(!nombre.includes(texto) && !apellido.includes(texto) && !email.includes(texto) && !user.includes(texto) && !institucion.includes(texto)) {
+            meter = false;
+          }
+        }
+
+        if (meter && rol !== '') {
+          if (usuario.rol !== rol) {
+            meter = false;
+          }
+        }
+
+        if (meter && estado === 'activo') {
+          if (usuario.cuentaBloqueada) {
+            meter = false;
+          }
+        }
+
+        if (meter && estado === 'bloqueado') {
+          if (!usuario.cuentaBloqueada) {
+            meter = false;
+          }
+        }
+
+        if (meter && fecha !== '') {
+          try {
+            var fechaUsuario = new Date(usuario.fechaActualizacion);
+            var textoFecha = fechaUsuario.toISOString().slice(0, 10);
+
+            if (textoFecha !== fecha) {
+              meter = false;
+            }
+          } catch (e) {
+            meter = false;
+          }
+        }
+
+        if(meter){
+          listaNueva.push(usuario);
+        }
+      }
+
+      usuariosFiltrados = listaNueva;
+      paginaActual = 1;
+      renderizarTabla();
+    }
+
+    function renderizarTabla() {
+      var inicio = (paginaActual - 1) * tamanioPagina;
+      var fin = inicio + tamanioPagina;
+      var tablaHTMLUsuario = '';
+      var i = 0;
+
+      if (usuariosFiltrados.length === 0) {
+        tablaUsuariosBody.innerHTML = '<tr><td colspan="8">No users to display</td></tr>';
+      } else {
+        for (i = inicio; i < fin && i < usuariosFiltrados.length; i++) {
+          var usuario = usuariosFiltrados[i];
+          var userTexto = '-';
+          var nombreTexto = '-';
+          var emailTexto = '-';
+          var institucionTexto = '-';
+
+          if (usuario.user) {
+            userTexto = usuario.user;
+          }
+
+          if (usuario.nombre || usuario.apellidos || usuario.apellido) {
+            nombreTexto = ((usuario.nombre || '') + ' ' + (usuario.apellidos || usuario.apellido || '')).trim();
+          }
+
+          if (usuario.email) {
+            emailTexto = usuario.email;
+          }
+
+          if (usuario.institucion) {
+            institucionTexto = usuario.institucion;
+          }
+
+          tablaHTMLUsuario += '<tr>';
+          tablaHTMLUsuario += '<td>' + userTexto + '</td>';
+          tablaHTMLUsuario += '<td>' + nombreTexto + '</td>';
+          tablaHTMLUsuario += '<td>' + emailTexto + '</td>';
+          tablaHTMLUsuario += '<td>' + obtenerRolHtml(usuario.rol) + '</td>';
+          tablaHTMLUsuario += '<td>' + institucionTexto + '</td>';
+          tablaHTMLUsuario += '<td>' + obtenerEstadoHtml(usuario) + '</td>';
+          tablaHTMLUsuario += '<td>' + formatearFecha(usuario.fechaActualizacion) + '</td>';
+          tablaHTMLUsuario += '<td>';
+          tablaHTMLUsuario += '<div class="acciones-tabla">';
+          tablaHTMLUsuario += '<button type="button" class="button boton-secundario" onclick="editarUsuario(\'' + usuario.id + '\')">Edit</button>';
+          tablaHTMLUsuario += '<button type="button" class="button boton-secundario" onclick="bloquearDesbloquearUsuario(\'' + usuario.id + '\')">Enable/Disable</button>';
+          tablaHTMLUsuario += '<button type="button" class="button boton-secundario" onclick="borrarUsuario(\'' + usuario.id + '\')">Delete</button>';
+          tablaHTMLUsuario += '</div>';
+          tablaHTMLUsuario += '</td>';
+          tablaHTMLUsuario += '</tr>';
+        }
+
+        tablaUsuariosBody.innerHTML = tablaHTMLUsuario;
+      }
+
+      var total = usuariosFiltrados.length;
+      var totalPaginas = Math.ceil(total / tamanioPagina);
+
+      if(totalPaginas < 1){
+        totalPaginas = 1;
+      }
+      if(paginaActual > totalPaginas){
+        paginaActual = totalPaginas;
+      }
+      if(total === 0){
+        resumenPaginacion.textContent = 'Showing 0 users';
+      }
+      else{
+        resumenPaginacion.textContent = 'Showing ' + (inicio + 1) + '-' + Math.min(fin, total) + ' of ' + total + ' users';
+      }
+
+      paginaActualTexto.textContent = 'Page ' + paginaActual + ' of ' + totalPaginas;
+
+      if(paginaActual <= 1){
+        document.getElementById('paginaAnteriorBtn').disabled = true;
+      } 
+      else{
+        document.getElementById('paginaAnteriorBtn').disabled = false;
+      }
+
+      if(paginaActual >= totalPaginas){
+        document.getElementById('paginaSiguienteBtn').disabled = true;
+      } 
+      else{
+        document.getElementById('paginaSiguienteBtn').disabled = false;
+      }
+    }
+
+    async function cargarUsuariosGestionables() {
+      try {
+        var res = await fetch('/api/admin/usuarios/gestionables');
+
+        if (!res.ok) {
+          throw new Error('Error loading users');
+        }
+
+        var data = await res.json();
+
+        if (Array.isArray(data)) {
+          usuarios = data;
+        } else {
+          usuarios = [];
+        }
+
+        usuariosFiltrados = [];
+
+        for (var i = 0; i < usuarios.length; i++) {
+          usuariosFiltrados.push(usuarios[i]);
+        }
+
+        renderizarTabla();
+      } catch (error) {
+        usuarios = [];
+        usuariosFiltrados = [];
+        renderizarTabla();
+        mostrarMensajeTabla('The manageable users could not be loaded', false);
+      }
+    }
+
+    function ponerModoCrear() {
+      idUsuarioEditando = null;
+      guardarUsuarioBtn.textContent = 'Create user';
+      cancelarEdicionBtn.style.display = 'none';
+      userAdminForm.reset();
+
+      document.getElementById('user').value = '';
+      document.getElementById('nombre').value = '';
+      document.getElementById('apellido').value = '';
+      document.getElementById('institucion').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('password2').value = '';
+      document.getElementById('passwordNueva').value = '';
+      document.getElementById('password2Editar').value = '';
+
+      document.getElementById('bloquePasswordCrear').style.display = 'block';
+      document.getElementById('bloquePasswordEditar').style.display = 'none';
+      document.getElementById('bloqueCambioPassword').style.display = 'none';
+      document.getElementById('ayudaCambioPassword').style.display = 'none';
+      document.getElementById('textoSwitchPassword').textContent = 'No';
+      document.getElementById('cambiarPasswordSwitch').checked = false;
+
+      document.getElementById('password').required = true;
+      document.getElementById('password').placeholder = 'Password';
+      document.querySelector('label[for="password"]').textContent = 'Password';
+
+      document.getElementById('password2').required = true;
+      document.getElementById('password2').placeholder = 'Re-enter Password';
+      document.querySelector('label[for="password2"]').textContent = 'Re-enter Password';
+
+      setTimeout(function () {
+        document.getElementById('user').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('password2').value = '';
+      }, 50);
+    }
+
+    function ponerModoEditar(usuario) {
+      idUsuarioEditando = usuario.id;
+      guardarUsuarioBtn.textContent = 'Save changes';
+      cancelarEdicionBtn.style.display = 'inline-block';
+
+      document.getElementById('user').value = usuario.user || '';
+      document.getElementById('nombre').value = usuario.nombre || '';
+
+      if(usuario.apellidos){
+        document.getElementById('apellido').value = usuario.apellidos;
+      } 
+      else if(usuario.apellido){
+        document.getElementById('apellido').value = usuario.apellido;
+      } 
+      else{
+        document.getElementById('apellido').value = '';
+      }
+
+      document.getElementById('institucion').value = usuario.institucion || '';
+      document.getElementById('email').value = usuario.email || '';
+
+      document.getElementById('bloquePasswordCrear').style.display = 'none';
+      document.getElementById('bloquePasswordEditar').style.display = 'block';
+      document.getElementById('cambiarPasswordSwitch').checked = false;
+      actualizarCambioPassword();
+
+      document.getElementById('password').required = false;
+      document.getElementById('password2').required = false;
+      document.getElementById('passwordNueva').required = false;
+      document.getElementById('password2Editar').required = false;
+
+      document.getElementById('password').value = '';
+      document.getElementById('password2').value = '';
+      document.getElementById('passwordNueva').value = '';
+      document.getElementById('password2Editar').value = '';
+
+      if(usuario.rol){
+        document.getElementById('rolObjetivo').value = usuario.rol;
+      } 
+      else{
+        document.getElementById('rolObjetivo').value = 'USER';
+      }
+    }
+
+    async function crearUsuarioDesdeFormulario(e) {
+      e.preventDefault();
+
+      var password = document.getElementById('password').value;
+      var password2 = document.getElementById('password2').value;
+      var passwordNueva = document.getElementById('passwordNueva').value;
+      var password2Editar = document.getElementById('password2Editar').value;
+      var passwordEnviar = '';
+
+      if (idUsuarioEditando != null) {
+        var cambiarPasswordActivado = document.getElementById('cambiarPasswordSwitch').checked;
+
+        if (cambiarPasswordActivado) {
+          if (passwordNueva === '') {
+            mostrarMensaje('You must enter your new password', false);
+            return;
+          }
+
+          if (password2Editar === '') {
+            mostrarMensaje('You must re-enter your new password', false);
+            return;
+          }
+
+          if (passwordNueva !== password2Editar) {
+            mostrarMensaje('The confirmation of the new password does not match', false);
+            return;
+          }
+
+          passwordEnviar = passwordNueva;
+        }
+      } 
+      else{
+        if (password === '') {
+          mostrarMensaje('You must enter a password', false);
+          return;
+        }
+
+        if (password2 === '') {
+          mostrarMensaje('You must re-enter the password', false);
+          return;
+        }
+
+        if (password !== password2) {
+          mostrarMensaje('The passwords do not match', false);
+          return;
+        }
+
+        passwordEnviar = password;
+      }
+
+      var payload = {
+        user: document.getElementById('user').value,
+        nombre: document.getElementById('nombre').value,
+        apellidos: document.getElementById('apellido').value,
+        institucion: document.getElementById('institucion').value,
+        email: document.getElementById('email').value,
+        password: passwordEnviar
+      };
+
+      var rol = document.getElementById('rolObjetivo').value;
+      var url = '/api/admin/usuarios?rol=' + encodeURIComponent(rol);
+      var metodo = 'POST';
+
+      if (idUsuarioEditando != null) {
+        url = '/api/admin/usuarios/' + encodeURIComponent(idUsuarioEditando) + '?rol=' + encodeURIComponent(rol);
+        metodo = 'PUT';
+      }
+
+      try {
+        var res = await fetch(url, {
+          method: metodo,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        var data = await res.json();
+
+        if(data.exito) {
+          if(data.mensaje) {
+            mostrarMensaje(data.mensaje, true);
+          } 
+          else{
+            if(idUsuarioEditando != null) {
+              mostrarMensaje('User edited successfully', true);
+            } 
+            else{
+              mostrarMensaje('User created successfully', true);
+            }
+          }
+
+          ponerModoCrear();
+          cargarUsuariosGestionables();
+        } 
+        else{
+          if(data.mensaje) {
+            mostrarMensaje(data.mensaje, false);
+          } 
+          else{
+            mostrarMensaje('The user could not be saved', false);
+          }
+        }
+      } 
+      catch(error){
+        mostrarMensaje('Error saving the user', false);
+      }
+    }
+
+    //DESCRIPCIÓN:Descarga la plantilla Excel guardada en la carpeta static
+    function descargarPlantilla() {
+      window.location.href = '/plantilla_carga_usuarios.xlsx';
+    }
+
+    /*
+    DESCRIPCIÓN:
+    Envía el archivo Excel al backend.
+    */
+    async function subirUsuariosMasivos() {
+      var inputArchivo = document.getElementById('archivoExcel');
+      var archivo = inputArchivo.files[0];
+      if(!archivo){
+        mostrarMensaje('You must select an Excel file',false);
+        return;
+      }
+      var nombreArchivo = archivo.name.toLowerCase();
+      if(!nombreArchivo.endsWith('.xlsx') && !nombreArchivo.endsWith('.xls')){
+        mostrarMensaje('The file must have .xlsx or .xls extension',false);
+        return;
+      }
+      var formData = new FormData();
+      // Para que coincida el nombre del archivo con lo que espra el controlador
+      formData.append('archivo',archivo);
+      try {
+        var respuesta = await fetch(
+          '/api/admin/usuarios/carga-masiva',
+          {
+            method: 'POST',
+            body: formData
+          }
+        );
+        var tipoContenido = respuesta.headers.get('content-type') || '';
+        if(!tipoContenido.includes('application/json')){
+          throw new Error('The server response is not JSON');
+        }
+        var data = await respuesta.json();
+        if(data.exito) {
+          mostrarMensaje( data.mensaje|| 'The Excel file has been processed',true);
+          inputArchivo.value = '';
+          cargarUsuariosGestionables();//Actualización de la tabla de usuarios
+        } 
+        else{
+          mostrarMensaje(data.mensaje|| 'The users could not be uploaded',false);
+        }
+
+      } 
+      catch(error){
+        console.error(error);
+        mostrarMensaje('Error uploading users',false);
+      }
+    }
+
+    function buscarUsuarioPorId(id) {
+      var i = 0;
+
+      for (i = 0; i < usuarios.length; i++) {
+        if (usuarios[i].id === id) {
+          return usuarios[i];
+        }
+      }
+
+      return null;
+    }
+
+    function editarUsuario(id) {
+      var usuario = buscarUsuarioPorId(id);
+
+      if (usuario == null) {
+        mostrarMensajeTabla('The user to edit was not found', false);
+        return;
+      }
+      ponerModoEditar(usuario);
+      if(usuario.email){
+        mostrarMensajeTabla('Editing a user ' + usuario.email, true);
+      } 
+      else if(usuario.user){
+        mostrarMensajeTabla('Editing a user ' + usuario.user, true);
+      } 
+      else{
+        mostrarMensajeTabla('Editing a user', true);
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function bloquearDesbloquearUsuario(id) {
+      var usuario = buscarUsuarioPorId(id);
+      var nuevoEstado = true;
+
+      if (usuario == null) {
+        mostrarMensajeTabla('User not found', false);
+        return;
+      }
+
+      if (usuario.cuentaBloqueada) {
+        nuevoEstado = false;
+      }
+
+      try {
+        var res = await fetch('/api/admin/usuarios/' + encodeURIComponent(id) + '/bloqueo', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ bloqueada: nuevoEstado })
+        });
+
+        var data = await res.json();
+
+        if (data.exito) {
+          if(data.mensaje){
+            mostrarMensajeTabla(data.mensaje, true);
+          } 
+          else{
+            mostrarMensajeTabla('User status updated', true);
+          }
+          cargarUsuariosGestionables();
+        } 
+        else{
+          if(data.mensaje){
+            mostrarMensajeTabla(data.mensaje, false);
+          } 
+          else{
+            mostrarMensajeTabla("The user's status could not be changed", false);
+          }
+        }
+      } 
+      catch(error){
+        mostrarMensajeTabla("Error attempting to change the user's status", false);
+      }
+    }
+
+    async function borrarUsuario(id) {
+      var confirmar = confirm('Are you sure you want to delete this user?');
+      if (!confirmar) {
+        return;
+      }
+
+      try {
+        var res = await fetch('/api/admin/usuarios/' + encodeURIComponent(id), {
+          method: 'DELETE'
+        });
+
+        var data = await res.json();
+
+        if (data.exito) {
+          if (data.mensaje) {
+            mostrarMensajeTabla(data.mensaje, true);
+          } 
+          else{
+            mostrarMensajeTabla('User successfully deleted', true);
+          }
+          if (idUsuarioEditando === id) {
+            ponerModoCrear();
+          }
+
+          cargarUsuariosGestionables();
+        } 
+        else{
+          if(data.mensaje) {
+            mostrarMensajeTabla(data.mensaje, false);
+          } 
+          else{
+            mostrarMensajeTabla('The user could not be deleted', false);
+          }
+        }
+      } catch (error) {
+        mostrarMensajeTabla('Error while trying to delete the user', false);
+      }
+    }
+
+  /*
+  PARÁMETRO DE ENTRADA: Ninguno
+  DESCRIPCIÓN: Solicita el borrado de todas las cuentas que el usuario autenticado tiene permiso para eliminar
+  PARÁMETRO DE SALIDA: Ninguno
+  */
+  async function borrarTodosUsuarios() {
+    var confirmar = confirm("Are you sure you want to delete all the user accounts created by you that can be deleted? Their workspaces, templates and logs will also be deleted.");
+    if (!confirmar) {
+      return;
+    }
+    var boton = document.getElementById("borrarTodosUsuariosBtn");
+    if(!boton) {
+      mostrarMensajeTabla("The delete button could not be found",false);
+      return;
+    }
+
+    var textoOriginal = boton.textContent;
+    boton.disabled = true;
+    boton.textContent = "Deleting...";
+
+    try {
+      var respuesta = await fetch(
+        "/api/admin/usuarios",
+        {
+          method: "DELETE"
+        }
+      );
+
+      var data = {};
+      try {
+        data = await respuesta.json();
+      }
+      catch (errorJson) {
+        data = {};
+      }
+
+      if (!respuesta.ok) {
+        mostrarMensajeTabla(data.mensaje ||"The user records could not be deleted",false);
+        return;
+      }
+
+      if (!data.exito) {
+        mostrarMensajeTabla(data.mensaje || "The user records could not be deleted",false);
+        return;
+      }
+
+      paginaActual = 1;
+      ponerModoCrear();
+      mostrarMensajeTabla(data.mensaje ||"All permitted user records were deleted successfully",true);
+      await cargarUsuariosGestionables();
+    }
+    catch(error) {
+      console.error(error);
+      mostrarMensajeTabla("Error deleting the permitted user records",false);
+    }
+    finally {
+      boton.disabled = false;
+      boton.textContent = textoOriginal;
+    }
+  }
+
+
+    function prepararFiltrosYPaginacion() {
+      document.getElementById('filtroTexto').addEventListener('input', aplicarFiltros);
+      document.getElementById('filtroRol').addEventListener('change', aplicarFiltros);
+      document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
+      document.getElementById('filtroFecha').addEventListener('change', aplicarFiltros);
+
+      document.getElementById('tamPagina').addEventListener('change', function (e) {
+        tamanioPagina = Number(e.target.value);
+        paginaActual = 1;
+        renderizarTabla();
+      });
+
+      document.getElementById('paginaAnteriorBtn').addEventListener('click', function () {
+        if (paginaActual > 1) {
+          paginaActual = paginaActual - 1;
+          renderizarTabla();
+        }
+      });
+
+      document.getElementById('paginaSiguienteBtn').addEventListener('click', function () {
+        var totalPaginas = Math.ceil(usuariosFiltrados.length / tamanioPagina);
+
+        if (totalPaginas < 1) {
+          totalPaginas = 1;
+        }
+
+        if (paginaActual < totalPaginas) {
+          paginaActual = paginaActual + 1;
+          renderizarTabla();
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      activarTabs();
+      prepararFiltrosYPaginacion();
+
+      userAdminForm.addEventListener('submit', crearUsuarioDesdeFormulario);
+      document.getElementById('descargarPlantillaBtn').addEventListener('click', descargarPlantilla);
+      document.getElementById('subirExcelBtn').addEventListener('click', subirUsuariosMasivos);
+      document.getElementById('refrescarUsuariosBtn').addEventListener('click', cargarUsuariosGestionables);
+      document.getElementById("borrarTodosUsuariosBtn").addEventListener("click", borrarTodosUsuarios);
+
+      var switchPassword = document.getElementById('cambiarPasswordSwitch');
+      if (switchPassword) {
+        switchPassword.checked = false;
+        switchPassword.addEventListener('change', actualizarCambioPassword);
+        actualizarCambioPassword();
+      }
+
+      cancelarEdicionBtn.addEventListener('click', function () {
+        ponerModoCrear();
+        mostrarMensaje('User edit canceled', true);
+      });
+
+      document.getElementById('limpiarFormularioBtn').addEventListener('click', function () {
+        if (idUsuarioEditando != null) {
+          ponerModoCrear();
+        } else {
+          document.getElementById('user').value = '';
+          document.getElementById('nombre').value = '';
+          document.getElementById('apellido').value = '';
+          document.getElementById('institucion').value = '';
+          document.getElementById('email').value = '';
+          document.getElementById('password').value = '';
+          document.getElementById('password2').value = '';
+        }
+      });
+
+      ponerModoCrear();
+      cargarUsuariosGestionables();
+    });
+  </script>
+</body>
+</html>
