@@ -1,0 +1,155 @@
+/*
+PARÁMETRO DE ENTRADA: Ninguno
+DESCRIPCIÓN: Lee el archivo Solidity seleccionado, valida su extensión y muestra su contenido en el editor
+PARÁMETRO DE SALIDA: Ninguno
+*/
+function loadSolidityFileAsText() {
+  var fileInput = document.getElementById("loadSolidityFileButton");
+  var fileToLoad = fileInput && fileInput.files ? fileInput.files[0] : null;
+  if (!fileToLoad) {
+    return;
+  }
+  var nombreArchivo = fileToLoad.name || "";
+  if (!nombreArchivo.toLowerCase().endsWith(".sol")) {
+    mostrarMensajeEditor("Solidity import","You must select a .sol file.",false);
+    fileInput.value = "";
+    return;
+  }
+  var logEvento = new LogEventButtonBlockly("importSolidity",workspace);
+  logsEventos.push(logEvento);
+  comprobarGuardadoAutomaticoPorCantidad();
+  var fileReader = new FileReader();
+  fileReader.onload = async function(event) {
+    try {
+      var codigoSolidity = event.target.result || "";
+      if (typeof establecerContenidoEditorCodigo === "function") {
+        establecerContenidoEditorCodigo(codigoSolidity);
+      }
+      else {
+        var xmlArea = document.getElementById("XmlArea");
+        if (xmlArea) {
+          xmlArea.value = codigoSolidity;
+        }
+      }
+      var boton = document.getElementById("transformSolidityButton");
+      if (boton) {
+        boton.disabled = codigoSolidity.trim() === "";
+      }
+      await mostrarMensajeEditor("Solidity import","The Solidity file was imported successfully.",false);
+    }
+    catch (error) {
+      console.error("Error loading Solidity file:",error);
+      await mostrarMensajeEditor("Solidity import","The Solidity file could not be processed.\n\n" + error.message,false);
+    }
+  };
+  fileReader.onerror = async function(error) {
+    console.error("FileReader error:",error);
+    await mostrarMensajeEditor("Solidity import","The Solidity file could not be read.",false);
+  };
+  fileReader.readAsText(fileToLoad,"UTF-8");
+}
+
+/*
+PARÁMETRO DE ENTRADA: Ninguno
+DESCRIPCIÓN: Obtiene el código Solidity del editor y solicita su conversión a bloques
+PARÁMETRO DE SALIDA: Ninguno
+*/
+async function parsearSolidityDesdeArea() {
+  var codigoSolidity = "";
+  if (typeof obtenerContenidoEditorCodigo === "function") {
+    codigoSolidity = obtenerContenidoEditorCodigo();
+  }
+  else {
+    var areaCodigo = document.getElementById("XmlArea");
+    if (areaCodigo) {
+      codigoSolidity = areaCodigo.value;
+    }
+  }
+  if (codigoSolidity == null || codigoSolidity.trim() === "") {
+    await mostrarMensajeEditor("Solidity conversion","First, enter or import the Solidity code.",true);
+    return;
+  }
+  var fileInput = document.getElementById("loadSolidityFileButton");
+  var nombreArchivo = "ContratoImportado.sol";
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    nombreArchivo = fileInput.files[0].name;
+  }
+  await parsearSolidityDesdeCodigo(codigoSolidity,nombreArchivo);
+}
+
+/*
+PARÁMETRO DE ENTRADA: Código Solidity y nombre del archivo que se enviarán al backend
+DESCRIPCIÓN: Solicita la conversión del contrato Solidity a XML de Blockly y carga los bloques generados
+PARÁMETRO DE SALIDA: Ninguno
+*/
+async function parsearSolidityDesdeCodigo(codigoSolidity,nombreArchivo) {
+  if (codigoSolidity == null || codigoSolidity.trim() === "") {
+    await mostrarMensajeEditor("Solidity conversion","The Solidity code is empty.",true);
+    return;
+  }
+  var peticion = {
+    codigoFuenteContrato: codigoSolidity,
+    nombreArchivoContrato: nombreArchivo || "ContratoImportado.sol",
+    optimizadorActivo: true,
+    ejecucionesOptimizador: 200
+  };
+  try {
+    var respuesta = await fetch("/api/parsearSolidity",{
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(peticion)
+    });
+    var textoRespuesta = await respuesta.text();
+    var resultado = {};
+    if (textoRespuesta && textoRespuesta.trim() !== "") {
+      try {
+        resultado = JSON.parse(textoRespuesta);
+      }
+      catch (errorJson) {
+        throw new Error(textoRespuesta);
+      }
+    }
+    if (!respuesta.ok) {
+      throw new Error(resultado.mensaje || textoRespuesta || "HTTP " + respuesta.status);
+    }
+    if (!resultado.correcto) {
+      await mostrarMensajeEditor("Solidity conversion",resultado.mensaje || "The Solidity contract could not be converted to blocks.",true);
+      return;
+    }
+    if (!resultado.xml || String(resultado.xml).trim() === "") {
+      await mostrarMensajeEditor("Solidity conversion","The converter did not return valid Blockly XML.",true);
+      return;
+    }
+    if (typeof establecerContenidoEditorCodigo === "function") {
+      establecerContenidoEditorCodigo(resultado.xml);
+    }
+    else {
+      var xmlArea = document.getElementById("XmlArea");
+      if (xmlArea) {
+        xmlArea.value = resultado.xml;
+      }
+    }
+    var convertido = fromXml();
+    if (convertido === false) {
+      await mostrarMensajeEditor("Solidity conversion","The XML generated by the converter could not be transformed into blocks.",true);
+      return;
+    }
+    var seeXmlBtn = document.getElementById("seeXMLButton");
+    var saveXmlBtn = document.getElementById("saveXMLButton");
+    var cleanBtn = document.getElementById("cleanBlockButton");
+    if (seeXmlBtn) {
+      seeXmlBtn.disabled = false;
+    }
+    if (saveXmlBtn) {
+      saveXmlBtn.disabled = false;
+    }
+    if (cleanBtn) {
+      cleanBtn.disabled = false;
+    }
+    await mostrarMensajeEditor("Solidity conversion",resultado.mensaje || "Solidity contract converted to blocks successfully.",true);
+  }
+  catch (error) {
+    console.error("Error parsing Solidity:",error);
+    await mostrarMensajeEditor("Solidity conversion","The Solidity code could not be converted into blocks:\n\n" + error.message,true);
+  }
+}

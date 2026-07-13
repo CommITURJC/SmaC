@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Language" content="es">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaCly - My workspaces</title>
+  <link rel="stylesheet" href="modalCuadroDialogo.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="shortcut icon" href="iconoNavegador.ico" />
+  <script src="js/modalCuadroDialogo.js"></script>
+  <script src="js/cerrarSesion.js"></script>
+  <script>
+    //SCRIPT PARA PODER DESCARGAR LOS ARCHIVOS EN SOLIDITY Y EN VYPER A PARTIR DE LOS ICONOS
+    function download(filename, textInput) {
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(textInput));
+      element.setAttribute('download', filename);
+      document.body.appendChild(element);
+      element.click();
+    }
+
+    async function descargarCodigoSolidityWorkspace(idWorkspace) {
+      if (!idWorkspace) {
+        mostrarMensajeWorkspaces('The Solidity code could not be downloaded', false);
+        return;
+      }
+
+      try {
+        var response = await fetch('/api/cargarWorkspace', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(idWorkspace)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error loading the workspace');
+        }
+
+        var workspace = await response.json();
+
+        if (!workspace || !workspace.codigoSolidity || workspace.codigoSolidity.trim() === '') {
+          mostrarMensajeWorkspaces('This workspace does not have any Solidity code saved', false);
+          return;
+        }
+
+        var nombreArchivo = 'workspace.sol';
+
+        if (workspace.nombreWorkspace && workspace.nombreWorkspace.trim() !== '') {
+          nombreArchivo = workspace.nombreWorkspace.trim() + '.sol';
+        }
+
+        download(nombreArchivo, workspace.codigoSolidity);
+        mostrarMensajeWorkspaces('Solidity code downloaded successfully', true);
+
+      } catch (e) {
+        console.error(e);
+        mostrarMensajeWorkspaces('Error downloading the Solidity code', false);
+      }
+    }
+
+    async function descargarCodigoVyperWorkspace(idWorkspace) {
+      if (!idWorkspace) {
+        mostrarMensajeWorkspaces('The Vyper code could not be downloaded', false);
+        return;
+      }
+
+      try {
+        var response = await fetch('/api/cargarWorkspace', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(idWorkspace)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error loading the workspace');
+        }
+
+        var workspace = await response.json();
+
+        if (!workspace || !workspace.codigoVyper || workspace.codigoVyper.trim() === '') {
+          mostrarMensajeWorkspaces('This workspace does not have any Vyper code saved', false);
+          return;
+        }
+
+        var nombreArchivo = 'workspace.vy';
+
+        if (workspace.nombreWorkspace && workspace.nombreWorkspace.trim() !== '') {
+          nombreArchivo = workspace.nombreWorkspace.trim() + '.vy';
+        }
+
+        download(nombreArchivo, workspace.codigoVyper);
+        mostrarMensajeWorkspaces('Vyper code downloaded successfully', true);
+
+      } 
+      catch (error) {
+        console.error(error);
+        mostrarMensajeWorkspaces('Error downloading the Vyper code', false);
+      }
+    }
+  </script>
+  <style>
+    body.pantalla-workspaces {
+      background: #f3f4f8;
+      min-height: 100vh;
+      overflow: auto;
+    }
+
+    .workspaces-contenedor {
+      width: calc(100% - 60px);
+      margin: 28px auto 32px auto;
+      background: #f7f7f7;
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    .panel-workspaces {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      padding: 22px;
+    }
+
+    .cabecera-tabla {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+  .acciones-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .boton-borrado-masivo:hover {
+    background: #ffe2df;
+  }
+
+  .boton-borrado-masivo:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .subtitulo-panel {
+      margin-top: -6px;
+      color: #58617f;
+      font-size: 14px;
+    }
+
+    .mensaje-panel {
+      margin-top: 0;
+      margin-bottom: 14px;
+      min-height: 22px;
+      font-weight: 600;
+    }
+
+    .mensaje-ok {
+      color: #188038;
+    }
+
+    .mensaje-error {
+      color: #c5221f;
+    }
+
+    .filtros-tabla {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.5fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(150px, .9fr);
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: end;
+    }
+
+    .campo {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .campo label {
+      font-weight: 600;
+      font-family: 'Saira', sans-serif;
+    }
+
+    .campo input,
+    .campo select {
+      border: 1px solid #cfd7f5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+      color: #222;
+    }
+
+    .tabla-scroll {
+      overflow-x: auto;
+      border: 1px solid #e4e8f7;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    table.tabla-workspaces {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    .tabla-workspaces thead {
+      background: #eef2ff;
+    }
+
+    .tabla-workspaces th,
+    .tabla-workspaces td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #edf1fb;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    .tabla-workspaces th {
+      color: #22317f;
+      font-family: 'Saira', sans-serif;
+    }
+
+    .badge-idioma {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #243388;
+    }
+
+    .button {
+      border-radius: 12px;
+    }
+
+    .boton-secundario {
+      box-shadow: none;
+      background: #eef2ff;
+      color: #243388;
+      border: 1px solid #bcc6ee;
+      text-shadow: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+
+    .acciones-tabla {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .paginacion {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .paginacion-acciones {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    @media (max-width: 1000px) {
+      .filtros-tabla {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .workspaces-contenedor {
+        width: calc(100% - 20px);
+        padding: 18px 12px;
+      }
+
+      .filtros-tabla {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .icono_descarga_codigo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      cursor: pointer;
+    }
+
+    .icono_descarga_codigo:hover {
+      transform: scale(1.25);
+    }
+
+    .acciones-tabla {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+  </style>
+</head>
+<body class="pantalla-workspaces">
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>
+      </div>
+
+      <div class="app-header__actions">
+        <img id="salirSesion" src="iconoApagado.svg" alt="Close session" title="Close session" />
+        <form id="formLogout" action="/logout" method="post" style="display:none;">
+          <button type="submit">Close session</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <div id="botoneraNavegacion" class="botonera_navegacion"></div>
+
+
+  <main class="workspaces-contenedor">
+    <section class="panel-workspaces">
+      <p id="mensajeWorkspaces" class="mensaje-panel"></p>
+
+      <div class="cabecera-tabla">
+        <div>
+          <h2>My workspaces</h2>
+          <p class="subtitulo-panel">List of available workspaces</p>
+        </div>
+        <div class="acciones-cabecera">
+          <button type="button" id="refrescarWorkspacesBtn" class="button boton-secundario">Refresh</button>
+          <button type="button" id="borrarTodosWorkspacesBtn" class="button boton-secundario">Delete all records</button>
+        </div>
+      </div>
+
+      <div class="filtros-tabla">
+        <div class="campo">
+          <label for="filtroTextoWorkspace">Search</label>
+          <input type="text" id="filtroTextoWorkspace" placeholder="Workspace's name, account user or email...">
+        </div>
+        <div class="campo">
+          <label for="filtroTipoWorkspace">Type</label>
+          <select id="filtroTipoWorkspace">
+            <option value="">All</option>
+            <option value="workspace">Workspaces</option>
+            <option value="template">Templates</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="filtroFechaWorkspace">Date</label>
+          <input type="date" id="filtroFechaWorkspace">
+        </div>
+
+        <div class="campo">
+          <label for="tamPaginaWorkspace">Workspaces per page</label>
+          <select id="tamPaginaWorkspace">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tabla-scroll">
+        <table class="tabla-workspaces">
+          <thead>
+            <tr>
+              <th>Workspace</th>
+              <th>Type</th>
+              <th>User account</th>
+              <th>Email</th>
+              <th>Creation date</th>
+              <th>Last update</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tablaWorkspacesBody"></tbody>
+        </table>
+      </div>
+
+      <div class="paginacion">
+        <div id="resumenPaginacionWorkspaces">Showing 0 workspaces</div>
+        <div class="paginacion-acciones">
+          <button type="button" id="paginaAnteriorWorkspacesBtn" class="button boton-secundario">Back</button>
+          <span id="paginaActualWorkspacesTexto">Page 1</span>
+          <button type="button" id="paginaSiguienteWorkspacesBtn" class="button boton-secundario">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  var paginaActualWorkspace = 1;
+  var tamanioPaginaWorkspace = 10;
+  var listaWorkspaces = [];
+  var listaWorkspacesFiltrados = [];
+  var usuarioActualWorkspaces = null;//Para comprobar
+  var tablaWorkspacesBody = document.getElementById('tablaWorkspacesBody');
+  var resumenPaginacionWorkspaces = document.getElementById('resumenPaginacionWorkspaces');
+  var paginaActualWorkspacesTexto = document.getElementById('paginaActualWorkspacesTexto');
+  var mensajeWorkspaces = document.getElementById('mensajeWorkspaces');
+
+  function mostrarMensajeWorkspaces(texto, ok) {
+    mensajeWorkspaces.textContent = texto;
+    if(ok){
+      mensajeWorkspaces.className = 'mensaje-panel mensaje-ok';
+    } 
+    else{
+      mensajeWorkspaces.className = 'mensaje-panel mensaje-error';
+    }
+  }
+
+  function normalizarTexto(_texto) {
+    if (_texto == null) {
+      return '';
+    }
+
+    var texto = String(_texto).toLowerCase().trim();
+    return texto;
+  }
+
+  function formatearFecha(_valor) {
+    if (!_valor) {
+      return '-';
+    }
+
+    try{
+      var fecha = new Date(_valor);
+      if(Number.isNaN(fecha.getTime())) {
+        return _valor;
+      }
+      return fecha.toLocaleString('es-ES');
+    } 
+    catch(error){
+      return _valor;
+    }
+  }
+
+
+function aplicarFiltrosWorkspaces() {
+  var filtroTexto = document.getElementById( 'filtroTextoWorkspace');
+  var filtroFecha = document.getElementById(  'filtroFechaWorkspace');
+  var filtroTipo = document.getElementById( 'filtroTipoWorkspace');
+
+  var texto = '';
+
+  if(filtroTexto){
+    texto = normalizarTexto(filtroTexto.value );
+  }
+  var fecha = '';
+  if (filtroFecha) {
+    fecha = filtroFecha.value;
+  }
+  var tipo = '';
+  if (filtroTipo) {
+    tipo = filtroTipo.value;
+  }
+
+  var nuevaLista = [];
+
+  for (var i = 0;i < listaWorkspaces.length;i++ ) {
+    var workspace = listaWorkspaces[i];
+    var meter = true;
+    //filtro de texto para filtrar por template o workspace
+    if (texto !== '') {
+      var nombreWorkspace = normalizarTexto( workspace.nombreWorkspace);
+      var user = normalizarTexto(workspace.user );
+      var email = normalizarTexto(workspace.email);
+      if (!nombreWorkspace.includes(texto)  && !user.includes(texto) && !email.includes(texto)) {
+        meter = false;
+      }
+    }
+    //FILTRO POR TIPO
+    if (meter && tipo !== '') {
+      var esPlantilla = workspace.isTemplate === true;
+      if (tipo === 'template' && !esPlantilla) {
+        meter = false;
+      }
+      if (tipo === 'workspace' && esPlantilla ) {
+        meter = false;
+      }
+    }
+
+    //Filtro por fecha de actualización
+    if(meter && fecha !== '') {
+      var fechaWorkspace = new Date( workspace.fechaActualizacion);
+      if(Number.isNaN(fechaWorkspace.getTime())){
+        meter = false;
+      } 
+      else{
+        var textoFecha = fechaWorkspace.toISOString().slice(0, 10);
+        if (textoFecha !== fecha) {
+          meter = false;
+        }
+      }
+    }
+    if(meter) {
+      nuevaLista.push(workspace);
+    }
+  }
+
+  listaWorkspacesFiltrados =nuevaLista;
+  paginaActualWorkspace = 1;
+  renderizarTablaWorkspaces();
+}
+
+
+function renderizarTablaWorkspaces() {
+  var inicio = (paginaActualWorkspace - 1)* tamanioPaginaWorkspace;
+  var fin =inicio + tamanioPaginaWorkspace;
+  var tablaHTML = '';
+  var i = 0;
+  if (listaWorkspacesFiltrados.length === 0) {
+    //Ahora la tabla tiene siete columnas porquehemos añadido la columna Type
+    tablaWorkspacesBody.innerHTML ='<tr>'+ '<td colspan="7">'+ 'There are no workspaces to display'+ '</td>'+ '</tr>';
+  } 
+  else{
+    for (i = inicio; i < fin && i < listaWorkspacesFiltrados.length;i++){
+      var workspace =listaWorkspacesFiltrados[i];
+      var nombreWorkspace = '-';
+      var user = '-';
+      var email = '-';
+      if (workspace.nombreWorkspace) {
+        nombreWorkspace = workspace.nombreWorkspace;
+      }
+      if (workspace.user) {
+        user = workspace.user;
+      }
+      if (workspace.email) {
+        email = workspace.email;
+      }
+
+      //Los workspaces antiguos pueden no tener isTemplate.Solo se considera plantilla cuando su valor es exactamente true.
+      var esPlantilla =workspace.isTemplate === true;
+      var tipoWorkspace = esPlantilla ? 'Template': 'Workspace';
+      var esPropietario = false;
+      if ( usuarioActualWorkspaces && usuarioActualWorkspaces.id  && workspace.userId){
+        esPropietario = String(usuarioActualWorkspaces.id)=== String(workspace.userId);
+      }
+
+      var rolUsuarioActual = '';
+
+      if(usuarioActualWorkspaces && usuarioActualWorkspaces.rol){
+        rolUsuarioActual = String(usuarioActualWorkspaces.rol).toUpperCase();
+      }
+      var esAdmin = rolUsuarioActual === 'ADMIN';//Un ADMIN mantiene las acciones administrativas
+      var esProfessor = rolUsuarioActual === 'PROFESSOR';//Un PROFESSOR puede mantener las acciones sobre los workspaces propios y de sus usuarios 
+      var esUser =rolUsuarioActual === 'USER';//Un USER solo puede borrar sus propios workspaces. Nunca puede borrar una plantilladel profesor.*/
+      var puedeBorrar = false;
+      if (esUser) {
+        puedeBorrar = esPropietario && !esPlantilla;
+      }
+      else if (esProfessor || esAdmin) {
+        puedeBorrar = true;
+      }
+      /*
+      Texto del botón de carga:
+        - Para el alumno (USER) se muestra "Use template"porque el backend le devolverá una copia
+        - Para el propietario se muestra "Load template" porque el profesor puede abrir la plantilla original y modificarla
+      */
+      var textoBotonCarga = 'Load workspace';
+      if(esPlantilla  && esUser && !esPropietario){
+        textoBotonCarga ='Use template';
+      } 
+      else if (esPlantilla){
+        textoBotonCarga ='Load template';
+      }
+      var idWorkspace = '';
+      if (workspace.id) {
+        idWorkspace = String(workspace.id);
+      }
+
+      tablaHTML += '<tr>';
+      tablaHTML += '<td>'+ escaparHtml(nombreWorkspace) + '</td>';
+      tablaHTML +='<td>';
+      if(esPlantilla){
+        tablaHTML += '<span class="etiqueta-workspace etiqueta-template">'  + 'Template'+ '</span>';
+      } 
+      else{
+        tablaHTML +='<span class="etiqueta-workspace etiqueta-normal">' + 'Workspace'+ '</span>';
+      }
+      tablaHTML +='</td>';
+      tablaHTML += '<td>' + escaparHtml(user)+ '</td>';
+      tablaHTML += '<td>' + escaparHtml(email) + '</td>';
+      tablaHTML += '<td>' + escaparHtml(formatearFecha(workspace.fechaCreacion))+ '</td>';
+      tablaHTML += '<td>'+ escaparHtml(formatearFecha(workspace.fechaActualizacion )) + '</td>';
+      tablaHTML += '<td>';
+      tablaHTML += '<div class="acciones-tabla">';
+      //Botón para cargar un workspace normal o utilizar una plantilla
+      if(idWorkspace !== "") {
+        tablaHTML +='<button'+ ' type="button"'+ ' class="button boton-secundario"'+ ' onclick="cargarWorkspace(\'' + idWorkspace+ '\')">'+ escaparHtml(textoBotonCarga)+ '</button>';
+      }
+
+      //Un USER no verá el botón Delete sobre una plantilla del profesor
+      if (idWorkspace !== '' && puedeBorrar) {
+        var textoBotonBorrado = esPlantilla ? 'Delete template': 'Delete workspace';
+        tablaHTML += '<button'+ ' type="button"' + ' class="button boton-secundario"' + ' onclick="borrarWorkspace(\'' + idWorkspace + '\')">'+ escaparHtml(textoBotonBorrado)+ '</button>';
+      }
+      if (idWorkspace !== '') {
+        tablaHTML +='<img' + ' src="solidity_logo.svg"'+ ' class="icono_descarga_codigo"'+ ' title="Click to download the Solidity code"'+ ' onclick="descargarCodigoSolidityWorkspace(\''+ idWorkspace + '\')">';
+        tablaHTML +='<img' + ' src="Vyper.svg"' + ' class="icono_descarga_codigo"'+ ' title="Click to download the Vyper code"'+ ' onclick="descargarCodigoVyperWorkspace(\''+ idWorkspace+ '\')">';
+      }
+
+      tablaHTML += '</div>';
+      tablaHTML += '</td>';
+      tablaHTML += '</tr>';
+    }
+
+    tablaWorkspacesBody.innerHTML = tablaHTML;
+  }
+
+  var total =listaWorkspacesFiltrados.length;
+  var totalPaginas = Math.ceil(total / tamanioPaginaWorkspace);
+  if(totalPaginas < 1) {
+    totalPaginas = 1;
+  }
+  if(paginaActualWorkspace > totalPaginas){
+    paginaActualWorkspace = totalPaginas;
+  }
+  if(total === 0) {
+    resumenPaginacionWorkspaces.textContent ='Showing 0 workspaces';
+
+  } 
+  else{
+    resumenPaginacionWorkspaces.textContent ='Showing '+ (inicio + 1) + '-' + Math.min(fin, total) + ' of '+ total+ ' workspaces';
+  }
+
+  paginaActualWorkspacesTexto.textContent ='Page '+ paginaActualWorkspace + ' of ' + totalPaginas;
+  if(paginaActualWorkspace <= 1){
+    document.getElementById('paginaAnteriorWorkspacesBtn').disabled = true;
+  } 
+  else{
+    document.getElementById('paginaAnteriorWorkspacesBtn').disabled = false;
+  }
+
+  if(paginaActualWorkspace>= totalPaginas){
+    document.getElementById('paginaSiguienteWorkspacesBtn').disabled = true;
+  } 
+  else{
+    document.getElementById('paginaSiguienteWorkspacesBtn') .disabled = false;
+  }
+}
+
+
+  /*
+  DESCRIPCIÓN: Obtiene los datos del usuario autenticado(ID, rol y si es propietario de un workspace)
+  */
+  async function cargarUsuarioActualWorkspaces() {
+    try{
+      var respuesta = await fetch('/api/miPerfil');
+      if(!respuesta.ok) {
+        throw new Error('The authenticated user could not be loaded');
+      }
+      var usuario = await respuesta.json();
+      if(usuario){
+        usuarioActualWorkspaces = usuario;
+      } 
+      else{
+        usuarioActualWorkspaces = null;
+      }
+    } 
+    catch(error){
+      console.error(error);
+      usuarioActualWorkspaces = null;
+    }
+  }
+
+  async function cargarWorkspaces() {
+    try {
+      var resultadosWorkspaces = await fetch('/api/workspaces/visibles');
+
+      if (!resultadosWorkspaces.ok) {
+        throw new Error('Error loading workspaces');
+      }
+      var data = await resultadosWorkspaces.json();
+      if (Array.isArray(data)){
+        listaWorkspaces = data;
+      } 
+      else{
+        listaWorkspaces = [];
+      }
+      listaWorkspacesFiltrados = [];
+      for (var i = 0; i < listaWorkspaces.length; i++) {
+        listaWorkspacesFiltrados.push(listaWorkspaces[i]);
+      }
+      renderizarTablaWorkspaces();
+    } 
+    catch(error){
+      listaWorkspaces = [];
+      listaWorkspacesFiltrados = [];
+      renderizarTablaWorkspaces();
+      mostrarMensajeWorkspaces('The visible workspaces could not be loaded', false);
+    }
+  }
+
+  function cargarWorkspace(idWorkspace) {
+    if (!idWorkspace) {
+      mostrarMensajeWorkspaces('The workspace could not be loaded', false);
+      return;
+    }
+
+    localStorage.setItem('workspaceIdSeleccionado', idWorkspace);
+    window.location.href = 'editor.html';
+  }
+
+  /*
+  PARÁMETRO DE ENTRADA: El id del workspace sobre el que se ha pulsado el botón DELETE ascoaido a este
+  DESCRIPCIÓN: Solicita al backend el borrado del workspace
+  PARÁMETRO DE SALIDA: Ninguno. Actualiza el mensaje y la tabla de workspaces
+  */
+  async function borrarWorkspace(idWorkspace) {
+    if(!idWorkspace){
+      mostrarMensajeWorkspaces('The workspace could not be deleted', false);
+      return;
+    }
+    var confirmar = confirm('Are you sure you want to delete this workspace?');
+    if(!confirmar){
+      return;
+    }
+
+    try{
+      var respuesta = await fetch('/api/workspaces/' + encodeURIComponent(idWorkspace), {
+        method: 'DELETE'
+      });
+      var data = await respuesta.json();
+      if(data.exito){
+        mostrarMensajeWorkspaces(data.mensaje || "Workspace successfully deleted",true);
+        if(localStorage.getItem("workspaceIdActual") === idWorkspace){
+          localStorage.removeItem("workspaceIdActual");
+        }
+        if(localStorage.getItem("workspaceIdSeleccionado") === idWorkspace){
+          localStorage.removeItem("workspaceIdSeleccionado");
+        }
+        await cargarWorkspaces();
+      } 
+      else{
+        mostrarMensajeWorkspaces(data.mensaje || 'The workspace could not be deleted', false);
+      }
+    } 
+    catch(error){
+      console.error(error);
+      mostrarMensajeWorkspaces('Error deleting the workspace', false);
+    }
+  }
+
+  /*
+  PARÁMETRO DE ENTRADA: Ninguno
+  DESCRIPCIÓN: Solicita al backend el borrado de todos los workspaces, plantillas y logs relacionados que el usuario autenticado tiene permiso para eliminar
+  PARÁMETRO DE SALIDA: Ninguno. Actualiza el mensaje y la tabla de workspaces
+  */
+  async function borrarTodosWorkspaces() {
+    var confirmar = confirm("Are you sure you want to delete all the workspaces and templates you are allowed to manage? Their related logs will also be deleted.");
+    if (!confirmar) {
+      return;
+    }
+    var botonBorrarTodos = document.getElementById("borrarTodosWorkspacesBtn");
+    var textoOriginal = botonBorrarTodos.textContent;
+    botonBorrarTodos.disabled = true;
+    botonBorrarTodos.textContent = "Deleting...";
+    try {
+      var respuesta = await fetch("/api/workspaces", {
+        method: "DELETE"
+      });
+      var data = await respuesta.json();
+      if (!respuesta.ok) {
+        mostrarMensajeWorkspaces(data.mensaje || "The records could not be deleted",false);
+        return;
+      }
+
+      if (data.exito) {
+        localStorage.removeItem("workspaceIdActual");
+        localStorage.removeItem("workspaceIdSeleccionado");
+        paginaActualWorkspace = 1;
+        mostrarMensajeWorkspaces(data.mensaje || "All permitted records were deleted successfully",true);
+        await cargarWorkspaces();
+      }
+      else {
+        mostrarMensajeWorkspaces(data.mensaje || "The records could not be deleted",false);
+      }
+    }
+    catch (error) {
+      console.error(error);
+      mostrarMensajeWorkspaces("Error deleting all permitted workspace records",false);
+    }
+    finally {
+      botonBorrarTodos.disabled = false;
+      botonBorrarTodos.textContent = textoOriginal;
+    }
+}
+
+
+  /*DESCRIPCIÓN:Convierte un texto en contenido seguro para mostrarlodentro de la tabla*/
+  function escaparHtml(valor) {
+    if(valor == null){
+      return '';
+    }
+    return String(valor).replaceAll('&', '&amp;').replaceAll('<', '&lt;') .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  }
+
+
+  function prepararFiltrosYPaginacion() {
+    document.getElementById('filtroTextoWorkspace').addEventListener('input', aplicarFiltrosWorkspaces);
+    document.getElementById('filtroFechaWorkspace').addEventListener('change', aplicarFiltrosWorkspaces);
+    document.getElementById('filtroTipoWorkspace').addEventListener('change',aplicarFiltrosWorkspaces);
+    document.getElementById('tamPaginaWorkspace').addEventListener('change', function (e) {
+      tamanioPaginaWorkspace = Number(e.target.value);
+      paginaActualWorkspace = 1;
+      renderizarTablaWorkspaces();
+    });
+
+    document.getElementById('paginaAnteriorWorkspacesBtn').addEventListener('click', function () {
+      if (paginaActualWorkspace > 1) {
+        paginaActualWorkspace = paginaActualWorkspace - 1;
+        renderizarTablaWorkspaces();
+      }
+    });
+
+    document.getElementById('paginaSiguienteWorkspacesBtn').addEventListener('click', function () {
+      var totalPaginas = Math.ceil(listaWorkspacesFiltrados.length / tamanioPaginaWorkspace);
+
+      if (totalPaginas < 1) {
+        totalPaginas = 1;
+      }
+
+      if (paginaActualWorkspace < totalPaginas) {
+        paginaActualWorkspace = paginaActualWorkspace + 1;
+        renderizarTablaWorkspaces();
+      }
+    });
+  }
+
+ document.addEventListener("DOMContentLoaded", async function() {
+    prepararFiltrosYPaginacion();
+    document.getElementById("refrescarWorkspacesBtn").addEventListener("click", cargarWorkspaces);
+    document.getElementById("borrarTodosWorkspacesBtn").addEventListener("click", borrarTodosWorkspaces);
+    await cargarUsuarioActualWorkspaces();
+    await cargarWorkspaces();
+  });
+</script>
+</body>
+</html>

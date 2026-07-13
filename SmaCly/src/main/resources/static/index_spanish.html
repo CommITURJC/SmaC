@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Language" content="en-us">
+  <title>SmaCly</title>
+  <script src="js\blockly_compressed.js"></script>
+  <script src="js\blocks_compressed.js"></script>
+  <script src="js\javascript_compressed.js"></script>
+  <script src="js\blocks.js"></script>
+  <script src="js\standard_categories.js"></script>
+  <script src="js\customblocklibrary.js"></script>
+  <script src="js\htmlGenerator.js"></script>
+  <script src="js\solidityGenerator.js"></script>
+  <script src="js\en.js"></script>
+  <script src="js\es.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="js\personalizedfunctions.js"></script>
+  <script src="js\commands\annyang.js"></script>
+  <script src="js\commands\voice_spanish.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="shortcut icon" href="/iconoNavegador.ico" />
+
+</head>
+
+<body>
+  
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo" />
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Diseña tu contrato inteligente usando Blockly</h1>
+      </div>
+
+      <div class="app-header__actions">
+        <label class="log-toggle" for="logCheck">
+          <span class="log-toggle__label">Registrar actividad usuario</span>
+          <input type="checkbox" class="casilla" onclick="registerLogs(this.checked)" id="logCheck">
+        </label>
+      </div>
+    </div>
+
+    <div id="botonera">
+      <input type="button" id="seeXMLButton" value="🔎Visualizar XML" onclick="toXml()" class="button" disabled>
+      <input type="button" id="saveXMLButton" value="💾Guardar XML" onclick="saveXml()" class="button">
+      <input type="button" id="saveLogButton" value="💾Guardar actividad usuario" onclick="saveLog()" class="button">
+      <input type="button" id="cleanBlockButton" value="🗑️Limpiar lienzo" onclick="cleanWorkspace()" class="button" disabled>
+      <input type="file" id="loadFileButton" class="button">
+      <input type="button" id="seeSolidityCode" value="⚙️Transformar Blockly a Solidity" onclick="seeSolidityToDownload()" class="button">
+      <input type="button" id="saveSolidityCode" value="💾Guardar código Solidity" class="button">
+      <input type="button" id="tranformButtonBlockly" value="🧩Transformar XML a Blockly" onclick="fromXml()" class="button">
+      <input type="button" id="tranformButtonLanguage" value="🇬🇧 Cambiar el idioma a Inglés" onclick="changeLanguage()" class="button">
+    </div>
+  </header>
+
+  <table>
+    <tr>
+      <td>
+        <textarea id="XmlArea" style="width:30vw;" oninput="textAreaChange()" onchange="textAreaChange()"
+          onkeyup="textAreaChange()"></textarea>
+      </td>
+      <td>
+        <div id="blocklyDiv" style="width: 69vw;"></div>
+      </td>
+    </tr>
+  </table>
+
+
+  
+
+  <!--|Script|-->
+<script>
+  function ajustarAlturaEditor() {
+    const header = document.querySelector("h1"); // tu cabecera actual
+    const table = document.querySelector("table");
+    const xmlArea = document.getElementById("XmlArea");
+    const blocklyDiv = document.getElementById("blocklyDiv");
+
+    if (!header || !table || !xmlArea || !blocklyDiv) return;
+
+    // Altura visible disponible
+    const viewportH = window.innerHeight;
+
+    // Posición superior de la tabla (justo donde empieza el editor)
+    const tableTop = table.getBoundingClientRect().top;
+
+    // Margen inferior de seguridad para evitar recorte de papelera/scrollbar
+    const bottomGap = 8;
+
+    const editorHeight = Math.max(200, viewportH - tableTop - bottomGap);
+
+    xmlArea.style.height = editorHeight + "px";
+    blocklyDiv.style.height = editorHeight + "px";
+
+    // Muy importante: decirle a Blockly que recalcule el SVG
+    if (window.workspace) {
+      Blockly.svgResize(window.workspace);
+    }
+  }
+</script>
+  <script>
+      async function initBlocklySpanish() {
+      // 1) Cargar toolbox XML externo
+      const response = await fetch('toolbox_es.xml');
+      if (!response.ok) {
+        throw new Error('No se pudo cargar toolbox_es.xml');
+      }
+
+      const toolboxText = await response.text();
+
+      // 2) Parsear XML del toolbox
+      let toolboxXml;
+      if (Blockly.utils && Blockly.utils.xml && Blockly.utils.xml.textToDom) {
+        toolboxXml = Blockly.utils.xml.textToDom(toolboxText);
+      } else {
+        // Compatibilidad con versiones antiguas
+        toolboxXml = Blockly.Xml.textToDom(toolboxText);
+      }
+
+      // 3) Inyectar Blockly
+      window.workspace = Blockly.inject('blocklyDiv', {
+        toolbox: toolboxXml
+      });
+      if (typeof restaurarWorkspace === "function") {
+        restaurarWorkspace();
+      }
+
+
+      ajustarAlturaEditor();
+      Blockly.svgResize(window.workspace);
+
+      // 4) Descargar Solidity (una sola vía)
+      const saveSolidityBtn = document.getElementById("saveSolidityCode");
+      if (saveSolidityBtn) {
+        saveSolidityBtn.addEventListener("click", function () {
+           var text = SolidityGenerator.workspaceToCode(window.workspace);
+            var filename = getSolidityFilenameFromWorkspace();
+            download(filename, text);
+        }, false);
+      }
+
+      // 5) Cargar XML desde archivo (una sola vía)
+      const loadFileBtn = document.getElementById("loadFileButton");
+      if (loadFileBtn) {
+        loadFileBtn.addEventListener("change", function () {
+          loadFileAsText();
+        }, false);
+      }
+
+      // 6) Sincronizar botón Guardar XML con textarea
+      $("#XmlArea").on("input change keyup", function () {
+        $("#saveXMLButton").prop("disabled", $("#XmlArea").val() === "");
+      });
+
+      // 7) Estado de botones según bloques
+      if (typeof checkBlocksAmount === "function") {
+        window.workspace.addChangeListener(checkBlocksAmount);
+      }
+    }
+
+
+    // Arranque
+    initBlocklySpanish().catch(function (err) {
+      console.error(err);
+      alert("Error al cargar Blockly / toolbox_es.xml");
+    });
+
+    window.addEventListener("resize", ajustarAlturaEditor);
+  </script>
+  <script>
+    $(document).ready(
+    function () {
+      $("#loadFileButton").on('change',
+        function () {
+          loadFileAsText();
+        });
+    });
+  </script>
+
+</body>
+
+</html>

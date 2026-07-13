@@ -1,0 +1,10 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Acceso denegado">
+  <!-- Persona -->
+  <circle cx="62" cy="42" r="20" fill="#E05252"></circle>
+  <path d="M28 104C28 84.1177 44.1177 68 64 68H60C79.8823 68 96 84.1177 96 104V108C96 114.627 90.6274 120 84 120H40C33.3726 120 28 114.627 28 108V104Z" fill="#E05252"></path>
+
+  <!-- Prohibido -->
+  <circle cx="112" cy="108" r="26" fill="white"></circle>
+  <circle cx="112" cy="108" r="21" stroke="#C81E1E" stroke-width="8"></circle>
+  <path d="M98 122L126 94" stroke="#C81E1E" stroke-width="8" stroke-linecap="round"></path>
+</svg>

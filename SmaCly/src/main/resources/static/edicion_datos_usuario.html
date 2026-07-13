@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Language" content="es">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaCly - Mi perfil</title>
+  <link rel="stylesheet" href="modalCuadroDialogo.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="shortcut icon" href="iconoNavegador.ico" />
+  <script src="js/cerrarSesion.js"></script>
+  <script src="js/modalCuadroDialogo.js"></script>
+  <style>
+    .pantalla-centro {
+      min-height: auto;
+      padding-top: 24px;
+      align-items: flex-start;
+    }
+
+    .botonera_navegacion {
+      margin-bottom: 0;
+    }
+    .mensaje-ok {
+      color: #188038;
+      font-weight: 600;
+    }
+
+    .mensaje-error {
+      color: #c5221f;
+      font-weight: 600;
+    }
+
+    .texto-ayuda {
+      font-size: 13px;
+      color: #5c6788;
+      margin-top: -4px;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .switch_password {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .switch_password input {
+      display: none;
+    }
+
+    .slider_password {
+      position: relative;
+      width: 54px;
+      height: 28px;
+      background: #cfd7f5;
+      border-radius: 999px;
+      transition: 0.2s;
+      display: inline-block;
+    }
+
+    .slider_password::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
+    .switch_password input:checked + .slider_password {
+      background: rgb(75, 86, 185);
+    }
+
+    .switch_password input:checked + .slider_password::before {
+      transform: translateX(26px);
+    }
+
+    .texto_switch_password {
+      font-size: 14px;
+      font-weight: 600;
+      color: #243388;
+    }
+
+    .fila_switch_password {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+
+    .texto-ayuda-switch {
+      font-size: 13px;
+      color: #5c6788;
+      line-height: 1.3;
+    }
+  </style>
+</head>
+<body class="pantalla-login">
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>
+      </div>
+
+      <div class="app-header__actions">
+        <img id="salirSesion" src="iconoApagado.svg" alt="Close session" title="Close session" />
+        <form id="formLogout" action="/logout" method="post" style="display:none;"><button type="submit">Close session</button></form>
+      </div>
+    </div>
+  </header>
+
+  <div id="botoneraNavegacion" class="botonera_navegacion"></div>
+
+  <main class="pantalla-centro">
+    <section class="tarjeta">
+      <h2 class="tarjeta-titulo">My user profile</h2>
+      <p class="tarjeta-texto">Update your personal information and change your password if necessary</p>
+
+      <form id="perfilForm" class="formu">
+        <div class="campo">
+          <label for="user">User account name</label>
+          <input type="text" id="user" name="user" placeholder="Insert here your user name" required>
+        </div>
+
+        <div class="campo">
+          <label for="nombre">User personal name</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Insert here your user name">
+        </div>
+
+        <div class="campo">
+          <label for="apellido">Surname</label>
+          <input type="text" id="apellido" name="apellido" placeholder="Inserte here your surname">
+        </div>
+
+        <div class="campo">
+          <label for="institucion">Institution</label>
+          <input type="text" id="institucion" name="institucion" placeholder="University, enterprise ...">
+        </div>
+
+        <div class="campo">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="user@email.com" required>
+        </div>
+
+        <div class="campo">
+          <label for="cambiarPasswordSwitch">Would you like to change your password?</label>
+
+          <div class="fila_switch_password">
+            <label class="switch_password">
+              <input type="checkbox" id="cambiarPasswordSwitch">
+              <span class="slider_password"></span>
+              <span id="textoSwitchPassword" class="texto_switch_password">No</span>
+            </label>
+
+            <span id="ayudaCambioPassword" class="texto-ayuda-switch" style="display:none;">
+              If you enable this option, you must fill in all three password fields            </span>
+          </div>
+        </div>
+
+        <div id="bloqueCambioPassword" style="display:none;">
+          <div class="campo">
+            <label for="password">Actually password</label>
+            <input type="password" id="password" name="password" placeholder="Actually user's password">
+          </div>
+
+          <div class="campo">
+            <label for="passwordNueva">New password</label>
+            <input type="password" id="passwordNueva" name="passwordNueva" placeholder="Insert here the new password">
+          </div>
+
+          <div class="campo">
+            <label for="password2">Re-enter new password</label>
+            <input type="password" id="password2" name="password2" placeholder="Enter the new password again">
+          </div>
+        </div>
+
+        <button type="submit" class="button boton-grande">Save changes</button>
+      </form>
+
+      <p id="mensaje" class="aviso"></p>
+    </section>
+  </main>
+
+  <script>
+    var mensaje = document.getElementById('mensaje');
+    var perfilForm = document.getElementById('perfilForm');
+
+    function mostrarMensaje(texto, ok) {
+      mensaje.textContent = texto;
+      if(ok){
+        mensaje.className = 'aviso mensaje-ok';
+      } 
+      else{
+        mensaje.className = 'aviso mensaje-error';
+      }
+    }
+
+    function actualizarCambioPassword() {
+      var switchPassword = document.getElementById('cambiarPasswordSwitch');
+      var textoSwitch = document.getElementById('textoSwitchPassword');
+      var bloquePassword = document.getElementById('bloqueCambioPassword');
+      var ayudaPassword = document.getElementById('ayudaCambioPassword');
+
+      if (!switchPassword || !textoSwitch || !bloquePassword || !ayudaPassword) {
+        return;
+      }
+
+      if(switchPassword.checked){
+        bloquePassword.style.display = 'block';
+        ayudaPassword.style.display = 'inline';
+        textoSwitch.textContent = 'Yes';
+      } 
+      else{
+        bloquePassword.style.display = 'none';
+        ayudaPassword.style.display = 'none';
+        textoSwitch.textContent = 'No';
+        document.getElementById('password').value = '';
+        document.getElementById('passwordNueva').value = '';
+        document.getElementById('password2').value = '';
+      }
+    }
+
+    async function cargarDatosUsuario() {
+      try {
+        var res = await fetch('/api/miPerfil');
+
+        if (!res.ok) {
+          throw new Error('The profile could not be loaded');
+        }
+
+        var datosUsuario = await res.json();
+
+        document.getElementById('user').value = datosUsuario.user || '';
+        document.getElementById('nombre').value = datosUsuario.nombre || '';
+
+        if(datosUsuario.apellidos){
+          document.getElementById('apellido').value = datosUsuario.apellidos;
+        }
+        else if(datosUsuario.apellido) {
+          document.getElementById('apellido').value = datosUsuario.apellido;
+        } 
+        else{
+          document.getElementById('apellido').value = '';
+        }
+
+        document.getElementById('institucion').value = datosUsuario.institucion || '';
+        document.getElementById('email').value = datosUsuario.email || '';
+
+      } 
+      catch(error){
+        mostrarMensaje('No se pudieron cargar los datos del usuario', false);
+      }
+    }
+
+    function validarPasswords() {
+      var cambiarPasswordActivado = document.getElementById('cambiarPasswordSwitch').checked;
+      var passwordActual = document.getElementById('password').value;
+      var passwordNueva = document.getElementById('passwordNueva').value;
+      var password2 = document.getElementById('password2').value;
+
+      if(!cambiarPasswordActivado){
+        return true;
+      }
+      if(passwordActual === ''){
+        mostrarMensaje('You must enter your current password', false);
+        return false;
+      }
+      if(passwordNueva === ''){
+        mostrarMensaje('You must enter your new password', false);
+        return false;
+      }
+      if(password2 === ''){
+        mostrarMensaje('You must re-enter your new password', false);
+        return false;
+      }
+      if(passwordActual === passwordNueva){
+        mostrarMensaje('The new password cannot be the same as your current one', false);
+        return false;
+      }
+
+      if(passwordNueva !== password2){
+        mostrarMensaje('The passwords do not match', false);
+        return false;
+      }
+      return true;
+    }
+
+    async function guardarPerfil(e) {
+      e.preventDefault();
+      if (!validarPasswords()) {
+        return;
+      }
+      var cambiarPasswordActivado = document.getElementById('cambiarPasswordSwitch').checked;
+      var passwordNueva = document.getElementById('passwordNueva').value;
+      var passwordEnviar = '';
+      if(cambiarPasswordActivado == true){
+        passwordEnviar = passwordNueva;
+      }
+
+      var payload = {
+        user: document.getElementById('user').value,
+        nombre: document.getElementById('nombre').value,
+        apellidos: document.getElementById('apellido').value,
+        institucion: document.getElementById('institucion').value,
+        email: document.getElementById('email').value,
+        password: passwordEnviar
+      };
+
+      try {
+        var res = await fetch('/api/miPerfil', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        var respuesta = await res.json();
+
+        if (respuesta.exito) {
+          mostrarMensaje(respuesta.mensaje || 'User information has been successfully updated', true);
+          document.getElementById('password').value = '';
+          document.getElementById('passwordNueva').value = '';
+          document.getElementById('password2').value = '';
+          document.getElementById('cambiarPasswordSwitch').checked = false;
+          actualizarCambioPassword();
+          cargarDatosUsuario();
+        }
+        else{
+          mostrarMensaje(respuesta.mensaje || 'The changes could not be saved', false);
+        }
+
+      } 
+      catch(error){
+        mostrarMensaje('Error saving changes', false);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      perfilForm.addEventListener('submit', guardarPerfil);
+
+      var switchPassword = document.getElementById('cambiarPasswordSwitch');
+
+      if (switchPassword) {
+        switchPassword.checked = false;
+        switchPassword.addEventListener('change', actualizarCambioPassword);
+        actualizarCambioPassword();
+      }
+
+      cargarDatosUsuario();
+    });
+  </script>
+</body>
+</html>

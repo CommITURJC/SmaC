@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Language" content="en-us">
+  <title>SmaCly</title>
+  <script src="js\blockly_compressed.js"></script>
+  <script src="js\blocks_compressed.js"></script>
+  <script src="js\javascript_compressed.js"></script>
+  <script src="js\blocks.js"></script>
+  <script src="js\standard_categories.js"></script>
+  <script src="js\customblocklibrary.js"></script>
+  <script src="js\htmlGenerator.js"></script>
+  <script src="js\en.js"></script>
+  <script src="js\es.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="js\modalCuadroDialogo.js"></script>
+  <script src="js\editorLogs.js"></script>
+  <script src="js\editorWorkspace.js"></script>
+  <script src="js\compilacionDescargas.js"></script>
+  <script src="js\solidityGenerator.js"></script>
+  <script src="js\vyperGenerator.js"></script>
+  <script src="js\registrarUsuario.js"></script>
+  <script src="js\cerrarSesion.js"></script>
+  <script src="js\cargarWorkspace.js"></script>
+  <script src="js\conversorE3Value.js"></script>
+  <script src="js\parsearSolidity.js"></script> 
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="modalCuadroDialogo.css">
+  <link rel="shortcut icon" href="/iconoNavegador.ico" />
+
+  <style>
+    .editor-botonera {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      padding: 14px 20px 18px 20px;
+      margin: 0 auto;
+    }
+
+    .editor-menu {
+      position: relative;
+      display: inline-block;
+    }
+
+    .editor-menu-btn {
+      min-width: 155px;
+      min-height: 48px;
+      padding: 11px 18px;
+      border-radius: 18px;
+      border: 2px solid rgb(75, 86, 185);
+      background: #eef2ff;
+      color: #243388;
+      font-family: 'Saira', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    }
+
+    .editor-menu-btn:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 22px rgba(0,0,0,.12);
+      background: #dfe5ff;
+    }
+
+    .editor-menu-opciones {
+      display: none;
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 205px;
+      background: #ffffff;
+      border: 1px solid #cfd7f5;
+      border-radius: 16px;
+      box-shadow: 0 14px 28px rgba(0,0,0,.14);
+      padding: 8px;
+      z-index: 1000;
+    }
+
+    .editor-menu.abierto .editor-menu-opciones {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .editor-menu-opciones button,
+    .editor-menu-opciones label {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #243388;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-family: 'Saira', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: left;
+      box-sizing: border-box;
+    }
+
+    .editor-menu-opciones button:hover,
+    .editor-menu-opciones label:hover {
+      background: #eef2ff;
+    }
+
+    .editor-menu-opciones input[type="file"] {
+      display: none;
+    }
+
+    .editor-menu-opciones button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .editor-menu-opciones button:disabled:hover {
+      background: transparent;
+    }
+
+    .editor-codigo-con-lineas {
+      width: 30vw;
+      display: flex;
+      border: 1px solid #cfd7f5;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+
+    .numeros-lineas-codigo {
+        width: 48px;
+        padding: 10px 8px;
+        background: #f3f5fb;
+        color: #7a829e;
+        text-align: right;
+        font-family: Consolas, Monaco, "Courier New", monospace;
+        font-size: 14px;
+        line-height: 20px;
+        user-select: none;
+        overflow: hidden;
+        white-space: pre;
+        border-right: 1px solid #d9def0;
+        box-sizing: border-box;
+      }
+
+    .area-codigo-con-lineas {
+        flex: 1;
+        width: 100%;
+        min-width: 0;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 10px;
+        font-family: Consolas, Monaco, "Courier New", monospace;
+        font-size: 14px;
+        line-height: 20px;
+        tab-size: 2;
+        box-sizing: border-box;
+        overflow: auto;
+    }
+
+    .editor-codigo-con-lineas {
+      background: #000000;
+    }
+
+    .numeros-lineas-codigo {
+      background: #f3f5fb;
+    }
+
+    .area-codigo-con-lineas {
+      background: #000000;
+      color: #33ff66;
+    }
+
+
+    @media (max-width: 900px) {
+      .editor-botonera {
+        gap: 10px;
+      }
+
+      .editor-menu-btn {
+        min-width: 135px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+      
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>  
+      </div>
+      
+      <div class="app-header__actions">
+        <label class="log-toggle" for="logCheck">
+          <span class="log-toggle__label">Register user activity</span>
+          <input type="checkbox" class="casilla" onclick="registerLogs(this.checked)" id="logCheck">
+        </label>
+
+        <img id="salirSesion" src="iconoApagado.svg" alt="Close user session" title="Close user session" />
+
+        <form id="formLogout" action="/logout" method="post" style="display:none;">
+          <button type="submit">Close session</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="botonera" class="editor-botonera">
+      <div class="editor-menu">
+        <button type="button" class="editor-menu-btn">🔎 Show Code</button>
+        <div class="editor-menu-opciones">
+          <button type="button" id="seeXMLButton" onclick="toXml()" disabled>XML</button>
+          <button type="button" id="seeSolidityCode" onclick="seeSolidityToDownload()">Solidity</button>
+          <button type="button" id="seeVyperCode" onclick="seeVyperToDownload()">Vyper</button>
+        </div>
+      </div>
+
+      <div class="editor-menu">
+        <button type="button" class="editor-menu-btn">💾 Download</button>
+        <div class="editor-menu-opciones">
+          <button type="button" id="saveXMLButton" onclick="saveXml()">XML</button>
+          <button type="button" id="saveSolidityCode">Solidity</button>
+          <button type="button" onclick="saveVyperToDownload()">Vyper</button>
+          <button type="button" id="saveLogButton" onclick="saveLog()">Logs</button>
+        </div>
+      </div>
+
+      <div class="editor-menu">
+        <button type="button" class="editor-menu-btn">🧩 Workspace</button>
+        <div class="editor-menu-opciones">
+          <button type="button" id="guardarWorkspaceEditorBtn">Save workspace</button>
+          <button type="button" id="cleanBlockButton" onclick="cleanWorkspace()" disabled>Clean editor</button>
+          <label for="loadFileButton">Import XML</label>
+          <input type="file" id="loadFileButton">
+          <button type="button" id="tranformButtonBlockly" onclick="fromXml()">Convert XML to blocks</button>
+          <label for="loadSolidityFileButton">Import Solidity</label>
+          <input type="file" id="loadSolidityFileButton" accept=".sol">
+          <button type="button" id="transformSolidityButton" onclick="parsearSolidityDesdeArea()">Convert Solidity to blocks</button>
+        </div>
+      </div>
+
+      <div class="editor-menu">
+        <button type="button" class="editor-menu-btn">⚙️ Compile</button>
+        <div class="editor-menu-opciones">
+          <button type="button" id="compileSolidityCode" onclick="compileSolidity()">Compile Solidity</button>
+          <button type="button" id="compileVyperCode" onclick="compileVyper()">Compile Vyper</button>
+          <button type="button" onclick="iniciarConversionE3ValueDesdeEditor()">Change contract to e3value</button>
+        </div>
+      </div>
+
+      <div class="editor-menu">
+        <button type="button" class="editor-menu-btn" onclick="window.location.href='home.html'">🏠 Home</button>
+      </div>
+    </div>
+  </header>
+
+  <table>
+    <tr>
+      <td>
+        <div id="editorCodigoConLineas" class="editor-codigo-con-lineas">
+          <div id="numerosLineasCodigo" class="numeros-lineas-codigo">1</div>
+
+          <textarea id="XmlArea"
+            class="area-codigo-con-lineas"
+            spellcheck="false"
+            oninput="actualizarNumerosLineasCodigo(); textAreaChange();"
+            onchange="actualizarNumerosLineasCodigo(); textAreaChange();"
+            onkeyup="actualizarNumerosLineasCodigo(); textAreaChange();"
+            onscroll="sincronizarScrollNumerosLineas();"></textarea>
+        </div>
+      </td>
+      <td>
+        <div id="blocklyDiv" style="width: 69vw;"></div>
+      </td>
+    </tr>
+  </table>
+
+  <script>
+    function prepararMenusEditor() {
+      var menus = document.querySelectorAll('.editor-menu');
+      var i = 0;
+
+      for (i = 0; i < menus.length; i++) {
+        var boton = menus[i].querySelector('.editor-menu-btn');
+
+        if (boton) {
+          boton.addEventListener('click', function (e) {
+            var menuActual = this.parentElement;
+            var estabaAbierto = menuActual.classList.contains('abierto');
+            var j = 0;
+
+            e.stopPropagation();
+
+            for (j = 0; j < menus.length; j++) {
+              menus[j].classList.remove('abierto');
+            }
+
+            if (!estabaAbierto) {
+              menuActual.classList.add('abierto');
+            }
+          });
+        }
+      }
+
+      document.addEventListener('click', function () {
+        var j = 0;
+
+        for (j = 0; j < menus.length; j++) {
+          menus[j].classList.remove('abierto');
+        }
+      });
+
+      var opciones = document.querySelectorAll('.editor-menu-opciones button, .editor-menu-opciones label');
+
+      for (i = 0; i < opciones.length; i++) {
+        opciones[i].addEventListener('click', function () {
+          var j = 0;
+
+          for (j = 0; j < menus.length; j++) {
+            menus[j].classList.remove('abierto');
+          }
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', prepararMenusEditor);
+  </script>
+
+  <script>
+    function ajustarAlturaEditor() {
+      const header = document.querySelector(".app-header");
+      const table = document.querySelector("table");
+      const xmlArea = document.getElementById("XmlArea");
+      const blocklyDiv = document.getElementById("blocklyDiv");
+      const editorCodigo = document.getElementById("editorCodigoConLineas");
+
+      if (!header || !table || !xmlArea || !blocklyDiv) return;
+
+      const viewportH = window.innerHeight;
+      const tableTop = table.getBoundingClientRect().top;
+      const bottomGap = 8;
+      const editorHeight = Math.max(200, viewportH - tableTop - bottomGap);
+
+      if (editorCodigo) {
+        editorCodigo.style.height = editorHeight + "px";
+      }
+
+      xmlArea.style.height = editorHeight + "px";
+      blocklyDiv.style.height = editorHeight + "px";
+
+      actualizarNumerosLineasCodigo();
+
+      if (window.workspace) {
+        Blockly.svgResize(window.workspace);
+      }
+  }
+  </script>
+
+  <script>
+  function obtenerContenidoEditorCodigo() {
+    var textarea = document.getElementById("XmlArea");
+    if (!textarea) {
+      return "";
+    }
+
+    return textarea.value;
+  }
+
+  function establecerContenidoEditorCodigo(contenido) {
+    var textarea = document.getElementById("XmlArea");
+
+    if (!textarea) {
+      return;
+    }
+
+    textarea.value = contenido || "";
+    actualizarNumerosLineasCodigo();
+  }
+
+  function actualizarNumerosLineasCodigo() {
+    var textarea = document.getElementById("XmlArea");
+    var numeros = document.getElementById("numerosLineasCodigo");
+
+    if (!textarea || !numeros) {
+      return;
+    }
+
+    var contenido = textarea.value || "";
+    var totalLineas = contenido.split("\n").length;
+
+    if (totalLineas < 1) {
+      totalLineas = 1;
+    }
+
+    var textoNumeros = "";
+
+    for (var i = 1; i <= totalLineas; i++) {
+      textoNumeros += i;
+
+      if (i < totalLineas) {
+        textoNumeros += "\n";
+      }
+    }
+
+    numeros.textContent = textoNumeros;
+    sincronizarScrollNumerosLineas();
+  }
+
+  function sincronizarScrollNumerosLineas() {
+    var textarea = document.getElementById("XmlArea");
+    var numeros = document.getElementById("numerosLineasCodigo");
+
+    if (!textarea || !numeros) {
+      return;
+    }
+
+    numeros.scrollTop = textarea.scrollTop;
+  }
+</script>
+  
+  <script>
+    async function initBlocklyEnglish() {
+      const response = await fetch('toolbox_es.xml');
+      if(!response.ok){
+        throw new Error('Failed to load toolbox_es.xml');
+      }
+      const toolboxText = await response.text();
+      let toolboxXml;
+      if(Blockly.utils && Blockly.utils.xml && Blockly.utils.xml.textToDom){
+        toolboxXml = Blockly.utils.xml.textToDom(toolboxText);
+      } 
+      else{
+        toolboxXml = Blockly.Xml.textToDom(toolboxText);
+      }
+      window.workspace = Blockly.inject('blocklyDiv', {
+        toolbox: toolboxXml
+      });
+
+      if(typeof enlazarLoggerWorkspace === "function") {
+        enlazarLoggerWorkspace();
+      }
+      if(typeof restaurarWorkspace === "function"){
+        restaurarWorkspace();
+      }
+
+      ajustarAlturaEditor();
+      Blockly.svgResize(window.workspace);
+
+      const saveSolidityBtn = document.getElementById("saveSolidityCode");
+      if (saveSolidityBtn) {
+        saveSolidityBtn.addEventListener("click", function () {
+           var text = SolidityGenerator.workspaceToCode(window.workspace);
+           var filename = getSolidityFilenameFromWorkspace();
+           download(filename, text);
+        }, false);
+      }
+
+      const loadFileBtn = document.getElementById("loadFileButton");
+      if (loadFileBtn) {
+        loadFileBtn.addEventListener("change", function () {
+          loadFileAsText();
+        }, false);
+      }
+
+      const loadSolidityFileBtn = document.getElementById("loadSolidityFileButton");
+      if(loadSolidityFileBtn){
+        loadSolidityFileBtn.addEventListener("change",function(){
+          loadSolidityFileAsText();
+        },false);
+      }
+
+      $("#XmlArea").on("input change keyup", function () {
+        actualizarNumerosLineasCodigo();
+        $("#saveXMLButton").prop("disabled", obtenerContenidoEditorCodigo() === "");
+      });
+
+      if (typeof checkBlocksAmount === "function") {
+        window.workspace.addChangeListener(checkBlocksAmount);
+      }
+    }
+
+    initBlocklyEnglish().catch(function (err) {
+      console.error(err);
+      alert("Error loading Blockly / toolbox_es.xml");
+    });
+
+    window.addEventListener("resize", ajustarAlturaEditor);
+  </script>
+
+  <div id="modalInicioWorkspace" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; width:90%; max-width:460px; border-radius:16px; padding:24px; box-shadow:0 12px 30px rgba(0,0,0,.2); text-align:center;">
+      <h2 style="margin-top:0;">How would you like to start?</h2>
+      <p style="color:#58617f; margin-bottom:22px;">
+        You can open a new workspace or restore the last workspace you edited.
+      </p>
+
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button id="nuevoWorkspace" class="button">New workspace</button>
+        <button id="ultimoWorkspace" class="button">Load the last workspace</button>
+      </div>
+    </div>   
+  </div>
+
+  <div id="modalGuardarWorkspace" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; width:90%; max-width:520px; border-radius:16px; padding:24px; box-shadow:0 12px 30px rgba(0,0,0,.2);">
+      <h2 style="margin-top:0;">Save workspace</h2>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label for="nombreWorkspaceModal" style="display:block; margin-bottom:6px; font-weight:600;">Nombre del workspace</label>
+          <input type="text" id="nombreWorkspaceModal" placeholder="Workspace name"
+            style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label for="xmlWorkspaceModal" style="display:block; margin-bottom:6px; font-weight:600;">XML</label>
+          <textarea id="xmlWorkspaceModal" readonly
+            style="width:100%; min-height:140px; padding:10px; border:1px solid #ccc; border-radius:8px; box-sizing:border-box; resize:vertical;"></textarea>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="guardarSolidityCheck">Save Solidity code</label>
+        <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="guardarVyperCheck">Save Vyper code</label>
+        <label id="contenedorGuardarTemplate" style="display:none; align-items:center; gap:8px;"><input type="checkbox"  id="guardarTemplateCheck"> Save as template</label>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:20px;">
+        <button id="guardarWorkspaceModalBtn" class="button">Save</button>
+        <button id="sobreescribirWorkspaceModalBtn" class="button" style="display:none;">Ovewrite</button>
+        <button id="cancelarGuardarWorkspaceModalBtn" class="button boton-secundario">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div id="modalMensajeEditor" class="modal-editor-fondo">
+    <div class="modal-editor-caja" role="dialog" aria-modal="true" aria-labelledby="tituloModalMensajeEditor" aria-describedby="contenidoModalMensajeEditor">
+      <h2 id="tituloModalMensajeEditor" class="modal-editor-titulo">Message</h2>
+      <div id="contenidoModalMensajeEditor" class="modal-editor-mensaje"></div>
+      <div class="modal-editor-acciones">
+        <button type="button" id="cancelarModalMensajeEditorBtn" class="button boton-secundario" hidden>Cancel</button>
+        <button type="button" id="aceptarModalMensajeEditorBtn" class="button">Accept</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

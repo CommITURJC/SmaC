@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Language" content="es">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaCly - Home</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="modalCuadroDialogo.css">
+  <link rel="shortcut icon" href="iconoNavegador.ico" />
+  <script src="js/modalCuadroDialogo.js"></script>
+  <script src="js/cerrarSesion.js"></script>
+  <style>
+    body.pantalla-home {
+      background: #f3f4f8;
+      min-height: 100vh;
+      overflow: auto;
+    }
+
+    .home-contenedor {
+      width: calc(100% - 60px);
+      min-height: calc(100vh - 140px);
+      margin: 28px auto 32px auto;
+      background: #f7f7f7;
+      padding: 40px 34px;
+      box-sizing: border-box;
+    }
+
+    .home-titulo {
+      text-align: center;
+      margin: 0 0 18px 0;
+      font-family: 'Saira', sans-serif;
+      color: #1d1d1d;
+      font-size: 28px;
+    }
+
+    .home-subtitulo {
+      text-align: center;
+      margin: 0 0 34px 0;
+      color: #5d657f;
+      font-size: 15px;
+    }
+
+    .home-grid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 90px;
+      flex-wrap: wrap;
+      min-height: 520px;
+    }
+
+    .home-card {
+      width: 300px;
+      height: 360px;
+      border: 3px solid #111;
+      border-radius: 38px;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 22px;
+      box-sizing: border-box;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    }
+
+    .home-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 12px 26px rgba(0,0,0,.12);
+      background: #eef2ff;
+    }
+
+    .home-card:active {
+      transform: translateY(-3px) scale(1.01);
+    }
+
+    .home-card__texto {
+      font-size: 26px;
+      line-height: 1.35;
+      color: #111;
+      font-family: 'Saira', sans-serif;
+      font-weight: 500;
+    }
+
+    .home-ayuda {
+      text-align: center;
+      margin-top: 10px;
+      color: #58617f;
+      font-size: 20px;
+    }
+
+    .home-mensaje {
+      text-align: center;
+      min-height: 24px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .home-mensaje--error {
+      color: #c5221f;
+    }
+
+    .home-mensaje--ok {
+      color: #188038;
+    }
+
+    .app-header__actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .home-rol {
+      font-family: 'Saira', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #243388;
+      background: #eef2ff;
+      border: 1px solid #bcc6ee;
+      border-radius: 999px;
+      padding: 7px 12px;
+    }
+
+    #salirSesion {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      user-select: none;
+      margin-left: 10px;
+    }
+
+    #salirSesion:hover {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+
+    @media (max-width: 1200px) {
+      .home-grid {
+        gap: 32px;
+      }
+
+      .home-card {
+        width: 230px;
+        height: 290px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .home-contenedor {
+        width: calc(100% - 24px);
+        padding: 24px 14px;
+      }
+
+      .home-grid {
+        gap: 18px;
+      }
+
+      .home-card {
+        width: 100%;
+        max-width: 290px;
+        height: 210px;
+      }
+
+      .home-card__texto {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body class="pantalla-home">
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>
+      </div>
+
+      <div class="app-header__actions">
+        
+        <img id="salirSesion" src="iconoApagado.svg" alt="Cerrar sesión" title="Cerrar sesión" />
+        <form id="formLogout" action="/logout" method="post" style="display:none;">
+          <button type="submit">Close session</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <main class="home-contenedor">
+    <p class="home-subtitulo">Click on an option to enter</p>
+    <p id="mensajeHome" class="home-mensaje"></p>
+
+    <div id="homeGrid" class="home-grid"></div>
+
+    
+  </main>
+
+  <script>
+    var homeGrid = document.getElementById('homeGrid');
+    var mensajeHome = document.getElementById('mensajeHome');
+    var rolUsuarioBadge = document.getElementById('rolUsuarioBadge');
+    var rolUsuarioActual = '';
+
+    function mostrarMensajeHome(texto, ok) {
+      mensajeHome.textContent = texto;
+
+      if (ok) {
+        mensajeHome.className = 'home-mensaje home-mensaje--ok';
+      } else {
+        mensajeHome.className = 'home-mensaje home-mensaje--error';
+      }
+    }
+
+    function obtenerOpcionesPorRol(rol) {
+      var opcionesFuncionalidadHome = [];
+      opcionesFuncionalidadHome.push({texto: 'Editor',ruta: 'editor.html'});
+      opcionesFuncionalidadHome.push({texto: 'My \nworkspaces', ruta: 'workspaces.html' });
+      opcionesFuncionalidadHome.push({texto: 'Check workspace activity (Logs)', ruta: 'logs.html'});
+      opcionesFuncionalidadHome.push({texto: 'My profile',ruta: 'edicion_datos_usuario.html'});
+      if(rol === 'PROFESSOR' || rol === 'ADMIN'){
+        opcionesFuncionalidadHome.push({texto: 'My managed users',ruta: 'gestion_usuarios.html' });
+      }
+      return opcionesFuncionalidadHome;
+    }
+
+    function crearTarjeta(opcion) {
+      var tarjeta = document.createElement('div');
+      tarjeta.className = 'home-card';
+      tarjeta.title = 'Click to enter';
+
+      var contenedor = document.createElement('div');
+      contenedor.style.display = 'flex';
+      contenedor.style.flexDirection = 'column';
+      contenedor.style.alignItems = 'center';
+      contenedor.style.justifyContent = 'center';
+      contenedor.style.gap = '16px';
+
+      var img = document.createElement('img');
+      img.style.width = '220px';
+      img.style.height = '220px';
+      img.style.objectFit = 'contain';
+
+      var textoOpcion = opcion.texto.toLowerCase();
+
+      if(textoOpcion.indexOf('editor') !== -1){
+        img.src = 'iconoEditorSmaCly.png';
+      } 
+      else if(textoOpcion.indexOf('workspaces') !== -1){
+        img.src = 'iconoWorkspace.png';
+      } 
+      else if(textoOpcion.indexOf('activity') !== -1){
+        img.src = 'iconoLogs.png';
+      } 
+      else if(textoOpcion.indexOf('managed users') !== -1){
+        img.src = 'iconoUsuarios.png';
+      } 
+      else if(textoOpcion.indexOf('profile') !== -1){
+        img.src = 'iconoMiPerfil.png';
+      } 
+      else{
+        img.src = 'logoSmaCly2.png';
+      }
+
+      var texto = document.createElement('div');
+      texto.className = 'home-card__texto';
+      texto.innerHTML = opcion.texto.replace(/\n/g, '<br>');
+      texto.style.fontSize = '20px';
+
+      contenedor.appendChild(img);
+      contenedor.appendChild(texto);
+      tarjeta.appendChild(contenedor);
+
+      tarjeta.addEventListener('click', function () {
+        window.location.href = opcion.ruta;
+      });
+
+      return tarjeta;
+    }
+
+    function pintarHome(rol) {
+      var opciones = obtenerOpcionesPorRol(rol);
+      var i = 0;
+
+      homeGrid.innerHTML = '';
+
+      for (i = 0; i < opciones.length; i++) {
+        homeGrid.appendChild(crearTarjeta(opciones[i]));
+      }
+    }
+
+    async function cargarRolUsuario() {
+      try {
+        var respuesta = await fetch('/api/miPerfil');
+
+        if (!respuesta.ok) {
+          throw new Error('The user profile could not be loaded');
+        }
+
+        var data = await respuesta.json();
+
+        if (data && data.rol) {
+          rolUsuarioActual = data.rol;
+        } 
+        else {
+          rolUsuarioActual = 'USER';
+        }
+
+        
+        pintarHome(rolUsuarioActual);
+      } 
+      catch (error) {
+        rolUsuarioActual = 'USER';     
+        pintarHome(rolUsuarioActual);
+        mostrarMensajeHome('The user rol could not be loaded. Only the basic view can be displayed', false);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      cargarRolUsuario();
+    });
+  </script>
+</body>
+</html>

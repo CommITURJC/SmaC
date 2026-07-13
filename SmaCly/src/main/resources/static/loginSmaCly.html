@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Language" content="es">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaCly - Login</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="shortcut icon" href="iconoNavegador.ico" />
+</head>
+<body class="pantalla-login">
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img id="logo" src="logoSmaCly2.png" alt="SmaCly logo"/>
+
+      <div class="app-header__text">
+        <h1 id="title">SmaCly : Design your smart contract using Blockly</h1>
+      </div>
+
+      <div class="app-header__actions"></div>
+    </div>
+  </header>
+
+  <main class="pantalla-centro">
+    <section class="tarjeta">
+      <h2 class="tarjeta-titulo">Sign In</h2>
+      <p class="tarjeta-texto">Log in to access your workspace</p>
+
+      <form id="loginForm" class="formu" method="post" action="/login">
+        <div class="campo">
+          <label for="username">Username or email address</label>
+          <input type="text" id="username" name="username" placeholder="Your account name or your user@email.com" required> <!--Hayy que indicarle el campo como username porque la capa de seguridad de Spring espera un username, en el backend este username luego se trata como email-->
+        </div>
+
+        <div class="campo">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Insert here your password" required>
+        </div>
+
+        <button type="submit" class="button boton-grande">Sign in</button>
+      </form>
+
+      <p id="mensaje" class="aviso"></p>
+
+      <p class="texto-centro">
+         Don't have an account on SmaCly?
+        <a href="registroSmaCly.html" class="link">Sign up here</a>
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const mensaje = document.getElementById("mensaje");
+
+    if (params.get("error") === "true") {
+      mensaje.textContent = "Incorrect username or password";
+      mensaje.style.color = "red";
+    }
+
+    if (params.get("logout") === "true") {
+      mensaje.textContent = "Session closed successfully";
+      mensaje.style.color = "green";
+    }
+  </script>
+</body>
+</html>
